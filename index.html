@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>E-Bookz Reader — Scrollable PDF Library</title>
+  <title>E-Bookz Cloud Reader</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
@@ -20,6 +21,7 @@
       --text-main: #2B241D;
       --accent: #B4653E;
       --paper-tint: #FFFDF8;
+      --line-marker: rgba(250, 204, 21, 0.42);
     }
     body {
       background-color: var(--bg-app);
@@ -46,65 +48,105 @@
       position: relative;
       margin: 0 auto 24px auto;
     }
-    /* Custom scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.35); border-radius: 999px; }
+    .paper-page.mark-mode {
+      cursor: crosshair;
+      outline: 2px dashed var(--accent);
+      outline-offset: 2px;
+    }
+    .last-line-marker {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 24px;
+      transform: translateY(-50%);
+      background: var(--line-marker);
+      border-left: 4px solid #EAB308;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .last-line-tag {
+      position: absolute;
+      right: 8px;
+      top: -18px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #EAB308;
+      color: #1E1B18;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- ==================== 1. LOGIN VIEW ==================== -->
+  <!-- LOGIN VIEW -->
   <section id="loginView" class="min-h-screen flex items-center justify-center p-4">
     <div class="card-surface w-full max-w-md rounded-2xl p-8 shadow-xl">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-11 h-11 rounded-xl accent-bg flex items-center justify-center shadow">
-          <i data-lucide="book-open" class="w-6 h-6"></i>
+      <div class="flex items-center justify-between gap-3 mb-6">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl accent-bg flex items-center justify-center shadow">
+            <i data-lucide="cloud" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">E-Bookz Cloud</h1>
+            <p class="text-xs opacity-70">Scrollable reader • Cloud sync • Custom vibe</p>
+          </div>
         </div>
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">E-Bookz</h1>
-          <p class="text-xs opacity-70">Your personal scrollable PDF library</p>
-        </div>
+
+        <label title="Upload Profile Photo" class="relative w-12 h-12 rounded-full overflow-hidden border-2 border-dashed border-black/25 flex items-center justify-center cursor-pointer shrink-0 bg-black/5 hover:opacity-85">
+          <img id="loginAvatarPreview" src="" alt="" class="hidden w-full h-full object-cover" />
+          <i id="loginAvatarPlaceholder" data-lucide="camera" class="w-4 h-4 opacity-65"></i>
+          <input id="loginPhotoInput" type="file" accept="image/*" class="hidden" />
+        </label>
       </div>
 
       <form id="loginForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold uppercase tracking-wider opacity-75 mb-1">Reader Name</label>
           <input id="loginName" type="text" required placeholder="e.g. Adam"
-            class="w-full px-3.5 py-2.5 rounded-xl bg-black/5 border border-black/10 focus:outline-none focus:ring-2" />
+            class="w-full px-3.5 py-2.5 rounded-xl bg-black/5 border border-black/10 focus:outline-none" />
         </div>
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider opacity-75 mb-1">Email</label>
-          <input id="loginEmail" type="email" required placeholder="reader@example.com"
-            class="w-full px-3.5 py-2.5 rounded-xl bg-black/5 border border-black/10 focus:outline-none focus:ring-2" />
+          <label class="block text-xs font-semibold uppercase tracking-wider opacity-75 mb-1">Email (Used to Sync Devices)</label>
+          <input id="loginEmail" type="email" required placeholder="you@example.com"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-black/5 border border-black/10 focus:outline-none" />
         </div>
         <button type="submit" class="w-full py-2.5 rounded-xl accent-bg font-semibold shadow hover:opacity-95 transition">
-          Sign In to Library
+          Sign In & Sync Library
         </button>
       </form>
-
-      <div class="mt-4 pt-4 border-t border-black/10 flex items-center justify-between text-xs">
-        <span class="opacity-70">Quick access without email:</span>
-        <button id="guestBtn" type="button" class="font-semibold accent-text hover:underline">Continue as Guest →</button>
-      </div>
+      <p id="cloudConfigWarning" class="hidden mt-4 text-xs text-red-600 font-medium">
+        Add your SUPABASE_URL and SUPABASE_ANON_KEY inside index.html to enable cross-device sync.
+      </p>
     </div>
   </section>
 
-  <!-- ==================== 2. HOME / LIBRARY VIEW ==================== -->
+  <!-- HOME / LIBRARY VIEW -->
   <section id="homeView" class="hidden flex-1 flex flex-col">
-    <!-- Top Navbar -->
     <header class="card-surface sticky top-0 z-30 px-4 md:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-lg accent-bg flex items-center justify-center">
-          <i data-lucide="library" class="w-5 h-5"></i>
-        </div>
+        <label title="Change Profile Photo" class="relative w-10 h-10 rounded-full overflow-hidden accent-bg flex items-center justify-center cursor-pointer shadow shrink-0">
+          <img id="headerAvatarImg" src="" alt="Profile" class="hidden w-full h-full object-cover" />
+          <i id="headerAvatarIcon" data-lucide="user" class="w-5 h-5"></i>
+          <input id="headerPhotoInput" type="file" accept="image/*" class="hidden" />
+        </label>
         <div>
-          <span class="font-bold text-lg">E-Bookz Library</span>
-          <span id="userBadge" class="ml-2 text-xs px-2 py-0.5 rounded-full bg-black/10"></span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-lg">E-Bookz Library</span>
+            <span id="userBadge" class="text-xs px-2 py-0.5 rounded-full bg-black/10"></span>
+          </div>
+          <span id="syncStatus" class="text-xs opacity-70">Synced</span>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="refreshCloudBtn" class="px-3 py-2 rounded-xl card-surface text-xs font-semibold flex items-center gap-1.5 hover:opacity-85">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync
+        </button>
+        <button id="openMusicModalBtn" class="px-3 py-2 rounded-xl card-surface text-xs font-semibold flex items-center gap-1.5 hover:opacity-85">
+          <i data-lucide="music" class="w-4 h-4 accent-text"></i> Music
+        </button>
         <button id="openColorModalBtn" class="px-3 py-2 rounded-xl card-surface text-xs font-semibold flex items-center gap-1.5 hover:opacity-85">
           <i data-lucide="palette" class="w-4 h-4 accent-text"></i> Edit Colours
         </button>
@@ -119,8 +161,8 @@
     </header>
 
     <main class="max-w-6xl w-full mx-auto p-4 md:p-8 space-y-6 flex-1">
-      <!-- Progress Summary Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <!-- Stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="card-surface rounded-2xl p-4">
           <p class="text-xs uppercase tracking-wider opacity-65 font-semibold">Total E-Books</p>
           <p id="statTotalBooks" class="text-2xl font-bold mt-1">0</p>
@@ -130,38 +172,60 @@
           <p id="statAvgProgress" class="text-2xl font-bold mt-1 accent-text">0%</p>
         </div>
         <div class="card-surface rounded-2xl p-4">
-          <p class="text-xs uppercase tracking-wider opacity-65 font-semibold">Completed Books</p>
+          <p class="text-xs uppercase tracking-wider opacity-65 font-semibold">Completed</p>
           <p id="statCompleted" class="text-2xl font-bold mt-1">0</p>
+        </div>
+        <div class="card-surface rounded-2xl p-4">
+          <p class="text-xs uppercase tracking-wider opacity-65 font-semibold">Favourites</p>
+          <p id="statFavorites" class="text-2xl font-bold mt-1 text-rose-500">0</p>
         </div>
       </div>
 
       <!-- Dropzone -->
-      <div id="dropZone" class="card-surface border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer hover:opacity-90 transition">
-        <i data-lucide="file-plus-2" class="w-8 h-8 mx-auto mb-2 accent-text"></i>
-        <p class="font-semibold text-sm">Drag & drop PDF e-books here, or click to browse</p>
-        <p class="text-xs opacity-65 mt-1">Stored locally in your browser (IndexedDB) so your books stay saved after refresh</p>
+      <div id="dropZone" class="card-surface border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer hover:opacity-90 transition">
+        <i data-lucide="cloud-upload" class="w-7 h-7 mx-auto mb-1.5 accent-text"></i>
+        <p class="font-semibold text-sm">Drag & drop PDF e-books here, or click to upload to Cloud</p>
+        <p class="text-xs opacity-65 mt-0.5">Accessible on any device when you log in with the same email</p>
+      </div>
+
+      <!-- Reading Filter & Sort Bar -->
+      <div class="card-surface rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-1.5" id="filterPills">
+          <button data-filter="all" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold accent-bg">All</button>
+          <button data-filter="reading" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/5 hover:bg-black/10">Reading</button>
+          <button data-filter="completed" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/5 hover:bg-black/10">Finished</button>
+          <button data-filter="favorites" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/5 hover:bg-black/10">Favourites</button>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+          <span class="opacity-70 font-medium">Sort:</span>
+          <select id="sortSelect" class="px-3 py-1.5 rounded-xl bg-black/5 border border-black/10 font-semibold focus:outline-none">
+            <option value="recent">Recently Read</option>
+            <option value="progress">Highest Progress</option>
+            <option value="rating">Highest Rating</option>
+            <option value="title">Title (A–Z)</option>
+          </select>
+        </div>
       </div>
 
       <!-- Book Shelf Grid -->
       <div>
-        <h2 class="text-sm font-bold uppercase tracking-wider opacity-75 mb-3">Your Uploaded E-Books</h2>
         <div id="bookGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
         <div id="emptyShelf" class="hidden text-center py-12 opacity-65 text-sm">
-          No books uploaded yet. Upload a PDF above to start reading!
+          No matching e-books found.
         </div>
       </div>
     </main>
   </section>
 
-  <!-- ==================== 3. SCROLLABLE READER VIEW ==================== -->
+  <!-- SCROLLABLE READER VIEW -->
   <section id="readerView" class="hidden fixed inset-0 z-40 flex flex-col" style="background-color: var(--bg-app);">
-    <!-- Reader Toolbar -->
-    <header id="readerToolbar" class="card-surface px-3 md:px-6 py-2.5 flex items-center justify-between gap-2 shadow-sm z-20">
+    <header class="card-surface px-3 md:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-sm z-20">
       <div class="flex items-center gap-2 min-w-0">
         <button id="backToLibraryBtn" class="px-3 py-1.5 rounded-lg card-surface text-xs font-semibold flex items-center gap-1 hover:opacity-80 shrink-0">
           <i data-lucide="arrow-left" class="w-4 h-4"></i> Library
         </button>
-        <h2 id="readerBookTitle" class="font-semibold text-sm truncate max-w-[160px] sm:max-w-xs">Book Title</h2>
+        <h2 id="readerBookTitle" class="font-semibold text-sm truncate max-w-[140px] sm:max-w-xs">Book Title</h2>
       </div>
 
       <!-- Live Scroll Page Indicator -->
@@ -173,12 +237,23 @@
         <span id="readerPercentBadge" class="hidden sm:inline-block ml-1 px-2 py-0.5 rounded-full accent-bg text-[11px]">0%</span>
       </div>
 
-      <!-- Zoom & Colours -->
+      <!-- Mark Line, Music, Zoom & Colours -->
       <div class="flex items-center gap-1.5">
+        <button id="toggleMarkLineBtn" title="Mark Last Sentence Read (Click on page)"
+          class="px-2.5 py-1.5 rounded-lg card-surface text-xs font-semibold flex items-center gap-1 hover:opacity-85">
+          <i data-lucide="highlighter" class="w-4 h-4 text-amber-500"></i>
+          <span class="hidden md:inline">Mark Line</span>
+        </button>
+        <button id="clearMarkLineBtn" title="Clear Marked Line" class="p-1.5 rounded-lg card-surface opacity-75 hover:opacity-100">
+          <i data-lucide="eraser" class="w-4 h-4"></i>
+        </button>
+        <button id="readerMusicBtn" title="Background Music" class="p-1.5 rounded-lg card-surface hover:opacity-80 relative">
+          <i data-lucide="music" class="w-4 h-4 accent-text"></i>
+        </button>
         <button id="zoomOutBtn" title="Zoom Out" class="p-1.5 rounded-lg card-surface hover:opacity-80">
           <i data-lucide="zoom-out" class="w-4 h-4"></i>
         </button>
-        <span id="zoomLabel" class="text-xs font-semibold w-11 text-center">100%</span>
+        <span id="zoomLabel" class="text-xs font-semibold w-10 text-center">115%</span>
         <button id="zoomInBtn" title="Zoom In" class="p-1.5 rounded-lg card-surface hover:opacity-80">
           <i data-lucide="zoom-in" class="w-4 h-4"></i>
         </button>
@@ -188,19 +263,57 @@
       </div>
     </header>
 
-    <!-- Top Thin Progress Line -->
     <div class="w-full h-1 bg-black/10">
       <div id="readerProgressLine" class="h-full accent-bg transition-all duration-150" style="width: 0%;"></div>
     </div>
 
-    <!-- Continuous Vertical Scroll Container -->
     <div id="scrollContainer" class="flex-1 overflow-y-auto px-3 sm:px-6 py-6 scroll-smooth">
       <div id="pagesWrapper" class="max-w-4xl mx-auto flex flex-col items-center"></div>
     </div>
   </section>
 
-  <!-- ==================== 4. COLOUR EDITOR MODAL ==================== -->
-  <div id="colorModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  <!-- BACKGROUND MUSIC MODAL -->
+  <div id="musicModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="card-surface w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg flex items-center gap-2">
+          <i data-lucide="music" class="w-5 h-5 accent-text"></i> Background Music
+        </h3>
+        <button id="closeMusicModalBtn" class="p-1 rounded-lg opacity-70 hover:opacity-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <label class="w-full py-3 px-4 rounded-xl border border-dashed border-black/20 flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer hover:opacity-85">
+        <i data-lucide="file-audio" class="w-4 h-4 accent-text"></i> Upload Audio File (MP3, WAV, OGG)
+        <input id="musicUploadInput" type="file" accept="audio/*" class="hidden" />
+      </label>
+
+      <div class="card-surface rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <span id="musicTrackName" class="text-xs font-semibold truncate">No track uploaded yet</span>
+          <button id="playPauseMusicBtn" class="px-3.5 py-1.5 rounded-lg accent-bg text-xs font-semibold flex items-center gap-1 shrink-0">
+            <i id="playPauseIcon" data-lucide="play" class="w-3.5 h-3.5"></i>
+            <span id="playPauseLabel">Play</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-xs">
+          <span class="opacity-75">Volume</span>
+          <input id="musicVolumeInput" type="range" min="0" max="1" step="0.05" value="0.5" class="w-36 accent-text cursor-pointer" />
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input id="musicLoopCheckbox" type="checkbox" checked class="rounded" />
+            <span>Loop</span>
+          </label>
+        </div>
+      </div>
+
+      <audio id="bgAudioPlayer" class="hidden"></audio>
+    </div>
+  </div>
+
+  <!-- COLOUR EDITOR MODAL -->
+  <div id="colorModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="card-surface w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5">
       <div class="flex items-center justify-between">
         <h3 class="font-bold text-lg flex items-center gap-2">
@@ -211,7 +324,6 @@
         </button>
       </div>
 
-      <!-- Quick Presets -->
       <div>
         <p class="text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">Presets</p>
         <div class="grid grid-cols-4 gap-2 text-xs font-semibold">
@@ -222,38 +334,26 @@
         </div>
       </div>
 
-      <!-- Individual Pickers -->
       <div class="space-y-3 text-sm">
-        <label class="flex items-center justify-between">
-          <span>App Background</span>
-          <input type="color" id="pickBgApp" class="w-10 h-8 rounded cursor-pointer border-0" />
-        </label>
-        <label class="flex items-center justify-between">
-          <span>Cards & Toolbar</span>
-          <input type="color" id="pickBgCard" class="w-10 h-8 rounded cursor-pointer border-0" />
-        </label>
-        <label class="flex items-center justify-between">
-          <span>Text Colour</span>
-          <input type="color" id="pickText" class="w-10 h-8 rounded cursor-pointer border-0" />
-        </label>
-        <label class="flex items-center justify-between">
-          <span>Accent & Progress Bar</span>
-          <input type="color" id="pickAccent" class="w-10 h-8 rounded cursor-pointer border-0" />
-        </label>
-        <label class="flex items-center justify-between">
-          <span>PDF Page Paper Tint</span>
-          <input type="color" id="pickPaper" class="w-10 h-8 rounded cursor-pointer border-0" />
-        </label>
+        <label class="flex items-center justify-between"><span>App Background</span><input type="color" id="pickBgApp" class="w-10 h-8 rounded cursor-pointer border-0" /></label>
+        <label class="flex items-center justify-between"><span>Cards & Toolbar</span><input type="color" id="pickBgCard" class="w-10 h-8 rounded cursor-pointer border-0" /></label>
+        <label class="flex items-center justify-between"><span>Text Colour</span><input type="color" id="pickText" class="w-10 h-8 rounded cursor-pointer border-0" /></label>
+        <label class="flex items-center justify-between"><span>Accent & Progress</span><input type="color" id="pickAccent" class="w-10 h-8 rounded cursor-pointer border-0" /></label>
+        <label class="flex items-center justify-between"><span>PDF Page Tint</span><input type="color" id="pickPaper" class="w-10 h-8 rounded cursor-pointer border-0" /></label>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end pt-2">
         <button id="doneColorModalBtn" class="px-4 py-2 rounded-xl accent-bg text-xs font-semibold">Save & Close</button>
       </div>
     </div>
   </div>
 
   <script>
-    // ==================== STATE & STORAGE ====================
+    // ==================== REPLACE THESE TWO VALUES ====================
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const BUCKET_NAME = 'ebooks';
+
     const PRESETS = {
       sepia: { bgApp: '#EFE6D5', bgCard: '#F8F2E7', text: '#2B241D', accent: '#B4653E', paper: '#FFFDF8' },
       light: { bgApp: '#F3F4F6', bgCard: '#FFFFFF', text: '#111827', accent: '#2563EB', paper: '#FFFFFF' },
@@ -261,23 +361,36 @@
       rose:  { bgApp: '#FDF2F8', bgCard: '#FFFFFF', text: '#4A1533', accent: '#DB2777', paper: '#FFF9FC' }
     };
 
-    let currentUser = JSON.parse(localStorage.getItem('ebookz_user') || 'null');
-    let activeBookId = null;
+    const isCloudConfigured =
+      SUPABASE_URL.startsWith('https://') &&
+      !SUPABASE_URL.includes('YOUR_SUPABASE_URL') &&
+      SUPABASE_ANON_KEY.length > 20 &&
+      !SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY');
+
+    const sb = isCloudConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let currentUser = JSON.parse(localStorage.getItem('ebookz_cloud_user') || 'null');
+    let pendingAvatarDataUrl = '';
+    let booksCache = [];
+    let activeFilter = 'all';
+    let activeSort = 'recent';
+    let activeBook = null;
     let pdfDoc = null;
     let totalPages = 0;
     let currentPage = 1;
     let zoomScale = 1.15;
+    let markLineMode = false;
     let pageObserver = null;
     let renderedPages = new Set();
 
-    // IndexedDB Helper for storing uploaded PDF files locally
-    function openDB() {
+    // ==================== LOCAL MEDIA DB (MUSIC & AVATAR) ====================
+    function openMediaDB() {
       return new Promise((resolve, reject) => {
-        const req = indexedDB.open('EBookzLibraryDB', 1);
+        const req = indexedDB.open('EBookzMediaDB', 1);
         req.onupgradeneeded = (e) => {
           const db = e.target.result;
-          if (!db.objectStoreNames.contains('books')) {
-            db.createObjectStore('books', { keyPath: 'id' });
+          if (!db.objectStoreNames.contains('media')) {
+            db.createObjectStore('media', { keyPath: 'key' });
           }
         };
         req.onsuccess = () => resolve(req.result);
@@ -285,40 +398,87 @@
       });
     }
 
-    async function getAllBooks() {
-      const db = await openDB();
+    async function saveMediaItem(key, value) {
+      const db = await openMediaDB();
       return new Promise((resolve) => {
-        const tx = db.transaction('books', 'readonly');
-        const req = tx.objectStore('books').getAll();
-        req.onsuccess = () => resolve((req.result || []).filter(b => b.owner === currentUser?.email));
-      });
-    }
-
-    async function saveBook(book) {
-      const db = await openDB();
-      return new Promise((resolve) => {
-        const tx = db.transaction('books', 'readwrite');
-        tx.objectStore('books').put(book);
+        const tx = db.transaction('media', 'readwrite');
+        tx.objectStore('media').put({ key, value });
         tx.oncomplete = () => resolve();
       });
     }
 
-    async function deleteBook(id) {
-      const db = await openDB();
+    async function getMediaItem(key) {
+      const db = await openMediaDB();
       return new Promise((resolve) => {
-        const tx = db.transaction('books', 'readwrite');
-        tx.objectStore('books').delete(id);
-        tx.oncomplete = () => resolve();
+        const tx = db.transaction('media', 'readonly');
+        const req = tx.objectStore('media').get(key);
+        req.onsuccess = () => resolve(req.result?.value || null);
       });
     }
 
-    // ==================== COLOURS ====================
-    function getSavedColors() {
-      const key = `ebookz_colors_${currentUser?.email || 'default'}`;
-      return JSON.parse(localStorage.getItem(key) || 'null') || PRESETS.sepia;
+    // ==================== HELPERS ====================
+    function setSyncStatus(text) {
+      const el = document.getElementById('syncStatus');
+      if (el) el.textContent = text;
     }
 
-    function applyColors(colors) {
+    function showView(viewId) {
+      ['loginView', 'homeView', 'readerView'].forEach(id => {
+        document.getElementById(id).classList.toggle('hidden', id !== viewId);
+      });
+    }
+
+    function setAvatarDisplay(dataUrl) {
+      const headerImg = document.getElementById('headerAvatarImg');
+      const headerIcon = document.getElementById('headerAvatarIcon');
+      const loginImg = document.getElementById('loginAvatarPreview');
+      const loginIcon = document.getElementById('loginAvatarPlaceholder');
+
+      if (dataUrl) {
+        headerImg.src = dataUrl;
+        headerImg.classList.remove('hidden');
+        headerIcon.classList.add('hidden');
+
+        loginImg.src = dataUrl;
+        loginImg.classList.remove('hidden');
+        loginIcon.classList.add('hidden');
+      } else {
+        headerImg.classList.add('hidden');
+        headerIcon.classList.remove('hidden');
+        loginImg.classList.add('hidden');
+        loginIcon.classList.remove('hidden');
+      }
+    }
+
+    function readImageAsDataUrl(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('loginPhotoInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      pendingAvatarDataUrl = await readImageAsDataUrl(file);
+      setAvatarDisplay(pendingAvatarDataUrl);
+    });
+
+    document.getElementById('headerPhotoInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file || !currentUser) return;
+      const dataUrl = await readImageAsDataUrl(file);
+      currentUser.avatar = dataUrl;
+      localStorage.setItem('ebookz_cloud_user', JSON.stringify(currentUser));
+      setAvatarDisplay(dataUrl);
+      if (sb) {
+        await sb.from('user_settings').upsert({ user_email: currentUser.email, profile_photo: dataUrl }, { onConflict: 'user_email' });
+      }
+    });
+
+    // ==================== COLOURS & SETTINGS ====================
+    function applyColors(colors, saveToCloud = false) {
       const root = document.documentElement;
       root.style.setProperty('--bg-app', colors.bgApp);
       root.style.setProperty('--bg-card', colors.bgCard);
@@ -332,81 +492,173 @@
       document.getElementById('pickAccent').value = colors.accent;
       document.getElementById('pickPaper').value = colors.paper;
 
-      const key = `ebookz_colors_${currentUser?.email || 'default'}`;
-      localStorage.setItem(key, JSON.stringify(colors));
+      if (currentUser) {
+        localStorage.setItem(`ebookz_colors_${currentUser.email}`, JSON.stringify(colors));
+        if (saveToCloud && sb) {
+          sb.from('user_settings').upsert({ user_email: currentUser.email, colors }, { onConflict: 'user_email' }).then(() => {});
+        }
+      }
     }
 
-    // ==================== AUTH & NAVIGATION ====================
-    function showView(viewId) {
-      ['loginView', 'homeView', 'readerView'].forEach(id => {
-        document.getElementById(id).classList.toggle('hidden', id !== viewId);
-      });
+    async function loadUserSettings() {
+      const fallbackColors = JSON.parse(localStorage.getItem(`ebookz_colors_${currentUser.email}`) || 'null') || PRESETS.sepia;
+      applyColors(fallbackColors, false);
+      setAvatarDisplay(currentUser.avatar || '');
+
+      if (sb && currentUser) {
+        const { data } = await sb.from('user_settings').select('colors, profile_photo').eq('user_email', currentUser.email).maybeSingle();
+        if (data?.colors) applyColors(data.colors, false);
+        if (data?.profile_photo) {
+          currentUser.avatar = data.profile_photo;
+          localStorage.setItem('ebookz_cloud_user', JSON.stringify(currentUser));
+          setAvatarDisplay(data.profile_photo);
+        }
+      }
+      await loadSavedMusic();
     }
 
+    // ==================== BACKGROUND MUSIC ====================
+    const audioPlayer = document.getElementById('bgAudioPlayer');
+    let currentAudioUrl = null;
+
+    async function loadSavedMusic() {
+      if (!currentUser) return;
+      const savedTrack = await getMediaItem(`music_${currentUser.email}`);
+      if (savedTrack?.blob) {
+        if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+        currentAudioUrl = URL.createObjectURL(savedTrack.blob);
+        audioPlayer.src = currentAudioUrl;
+        document.getElementById('musicTrackName').textContent = savedTrack.name || 'Uploaded Audio';
+      }
+    }
+
+    document.getElementById('musicUploadInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file || !currentUser) return;
+      await saveMediaItem(`music_${currentUser.email}`, { name: file.name, blob: file });
+      if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+      currentAudioUrl = URL.createObjectURL(file);
+      audioPlayer.src = currentAudioUrl;
+      audioPlayer.loop = document.getElementById('musicLoopCheckbox').checked;
+      audioPlayer.volume = Number(document.getElementById('musicVolumeInput').value);
+      document.getElementById('musicTrackName').textContent = file.name;
+      await audioPlayer.play().catch(() => {});
+      syncPlayPauseUI();
+    });
+
+    function syncPlayPauseUI() {
+      const playing = !audioPlayer.paused;
+      document.getElementById('playPauseLabel').textContent = playing ? 'Pause' : 'Play';
+      document.getElementById('playPauseIcon').setAttribute('data-lucide', playing ? 'pause' : 'play');
+      lucide.createIcons();
+    }
+
+    document.getElementById('playPauseMusicBtn').addEventListener('click', async () => {
+      if (!audioPlayer.src) return alert('Upload an audio file first!');
+      if (audioPlayer.paused) await audioPlayer.play().catch(() => {});
+      else audioPlayer.pause();
+      syncPlayPauseUI();
+    });
+
+    document.getElementById('musicVolumeInput').addEventListener('input', (e) => {
+      audioPlayer.volume = Number(e.target.value);
+    });
+
+    document.getElementById('musicLoopCheckbox').addEventListener('change', (e) => {
+      audioPlayer.loop = e.target.checked;
+    });
+
+    audioPlayer.addEventListener('play', syncPlayPauseUI);
+    audioPlayer.addEventListener('pause', syncPlayPauseUI);
+
+    // ==================== AUTH & INIT ====================
     async function initApp() {
       lucide.createIcons();
-      applyColors(getSavedColors());
+      if (!isCloudConfigured) {
+        document.getElementById('cloudConfigWarning').classList.remove('hidden');
+      }
       if (!currentUser) {
+        setAvatarDisplay(pendingAvatarDataUrl);
         showView('loginView');
       } else {
         document.getElementById('userBadge').textContent = currentUser.name;
         showView('homeView');
+        await loadUserSettings();
         await renderLibrary();
       }
     }
 
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       currentUser = {
         name: document.getElementById('loginName').value.trim(),
-        email: document.getElementById('loginEmail').value.trim().toLowerCase()
+        email: document.getElementById('loginEmail').value.trim().toLowerCase(),
+        avatar: pendingAvatarDataUrl || ''
       };
-      localStorage.setItem('ebookz_user', JSON.stringify(currentUser));
-      initApp();
-    });
-
-    document.getElementById('guestBtn').addEventListener('click', () => {
-      currentUser = { name: 'Guest Reader', email: 'guest@local' };
-      localStorage.setItem('ebookz_user', JSON.stringify(currentUser));
-      initApp();
+      localStorage.setItem('ebookz_cloud_user', JSON.stringify(currentUser));
+      await initApp();
     });
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('ebookz_user');
+      audioPlayer.pause();
+      localStorage.removeItem('ebookz_cloud_user');
       currentUser = null;
       showView('loginView');
     });
 
-    // ==================== LIBRARY & UPLOAD ====================
+    document.getElementById('refreshCloudBtn').addEventListener('click', () => renderLibrary());
+
+    // ==================== UPLOAD, FILTER, SORT, RENAME, RATE, FAVOURITE ====================
     async function generateCoverAndCount(arrayBuffer) {
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
-      const pdf = await loadingTask.promise;
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
       const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 0.45 });
+      const viewport = page.getViewport({ scale: 0.4 });
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-      return { coverDataUrl: canvas.toDataURL('image/jpeg', 0.75), numPages: pdf.numPages };
+      return { coverData: canvas.toDataURL('image/jpeg', 0.72), totalPages: pdf.numPages };
     }
 
     async function handleFilesUpload(fileList) {
+      if (!sb) return alert('Please set SUPABASE_URL and SUPABASE_ANON_KEY in index.html first.');
       for (const file of fileList) {
         if (file.type !== 'application/pdf') continue;
+        setSyncStatus('Uploading...');
         const buffer = await file.arrayBuffer();
-        const { coverDataUrl, numPages } = await generateCoverAndCount(buffer);
-        const book = {
-          id: 'book_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-          owner: currentUser.email,
+        const { coverData, totalPages: numPages } = await generateCoverAndCount(buffer);
+
+        const bookId = 'book_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        const safeEmail = currentUser.email.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storagePath = `${safeEmail}/${bookId}.pdf`;
+
+        const { error: uploadErr } = await sb.storage.from(BUCKET_NAME).upload(storagePath, file, { contentType: 'application/pdf', upsert: true });
+        if (uploadErr) {
+          alert('Upload failed: ' + uploadErr.message);
+          setSyncStatus('Sync error');
+          continue;
+        }
+
+        const { error: dbErr } = await sb.from('user_books').insert({
+          id: bookId,
+          user_email: currentUser.email,
           title: file.name.replace(/\.pdf$/i, ''),
-          fileData: buffer,
-          cover: coverDataUrl,
-          totalPages: numPages,
-          lastPage: 1,
-          updatedAt: Date.now()
-        };
-        await saveBook(book);
+          storage_path: storagePath,
+          cover_data: coverData,
+          total_pages: numPages,
+          last_page: 1,
+          is_favorite: false,
+          rating: 0,
+          marked_line: null,
+          updated_at: Date.now()
+        });
+
+        if (dbErr) {
+          alert('Database save failed: ' + dbErr.message);
+          setSyncStatus('Sync error');
+        }
       }
+      setSyncStatus('Synced');
       await renderLibrary();
     }
 
@@ -425,42 +677,85 @@
       handleFilesUpload(e.dataTransfer.files);
     });
 
-    async function renderLibrary() {
-      const books = (await getAllBooks()).sort((a, b) => b.updatedAt - a.updatedAt);
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeFilter = btn.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.classList.toggle('accent-bg', b.dataset.filter === activeFilter);
+          b.classList.toggle('bg-black/5', b.dataset.filter !== activeFilter);
+        });
+        renderShelfGrid();
+      });
+    });
+
+    document.getElementById('sortSelect').addEventListener('change', (e) => {
+      activeSort = e.target.value;
+      renderShelfGrid();
+    });
+
+    function getBookProgressPct(book) {
+      return Math.min(100, Math.round((book.last_page / Math.max(1, book.total_pages)) * 100));
+    }
+
+    function renderShelfGrid() {
       const grid = document.getElementById('bookGrid');
       const empty = document.getElementById('emptyShelf');
       grid.innerHTML = '';
 
-      document.getElementById('statTotalBooks').textContent = books.length;
-      if (books.length === 0) {
+      let filtered = booksCache.filter(book => {
+        const pct = getBookProgressPct(book);
+        if (activeFilter === 'favorites') return !!book.is_favorite;
+        if (activeFilter === 'completed') return pct >= 100;
+        if (activeFilter === 'reading') return pct > 0 && pct < 100;
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        if (activeSort === 'progress') return getBookProgressPct(b) - getBookProgressPct(a);
+        if (activeSort === 'rating') return (b.rating || 0) - (a.rating || 0);
+        if (activeSort === 'title') return a.title.localeCompare(b.title);
+        return (b.updated_at || 0) - (a.updated_at || 0);
+      });
+
+      if (filtered.length === 0) {
         empty.classList.remove('hidden');
-        document.getElementById('statAvgProgress').textContent = '0%';
-        document.getElementById('statCompleted').textContent = '0';
         return;
       }
       empty.classList.add('hidden');
 
-      let totalPct = 0;
-      let completedCount = 0;
-
-      books.forEach(book => {
-        const pct = Math.min(100, Math.round((book.lastPage / book.totalPages) * 100));
-        totalPct += pct;
-        if (pct >= 100) completedCount++;
+      filtered.forEach(book => {
+        const pct = getBookProgressPct(book);
+        const starsHtml = [1, 2, 3, 4, 5].map(n => `
+          <button data-star="${n}" class="star-btn text-base leading-none ${(book.rating || 0) >= n ? 'text-amber-400' : 'opacity-25 hover:opacity-70'}">★</button>
+        `).join('');
 
         const card = document.createElement('div');
-        card.className = 'card-surface rounded-2xl p-4 flex gap-4 items-center shadow-sm hover:shadow-md transition';
+        card.className = 'card-surface rounded-2xl p-4 flex gap-4 items-start shadow-sm hover:shadow-md transition';
         card.innerHTML = `
-          <img src="${book.cover}" alt="Cover" class="w-16 h-24 object-cover rounded-lg shadow shrink-0 bg-white" />
+          <img src="${book.cover_data || ''}" alt="Cover" class="w-16 h-24 object-cover rounded-lg shadow shrink-0 bg-white mt-0.5" />
           <div class="flex-1 min-w-0">
-            <h3 class="font-bold text-sm truncate" title="${book.title}">${book.title}</h3>
-            <p class="text-xs opacity-70 mt-0.5">Page ${book.lastPage} of ${book.totalPages} (${pct}%)</p>
-            <div class="w-full h-2 rounded-full bg-black/10 mt-2 overflow-hidden">
+            <div class="flex items-start justify-between gap-1">
+              <h3 class="font-bold text-sm truncate" title="${book.title}">${book.title}</h3>
+              <div class="flex items-center gap-1 shrink-0">
+                <button title="Rename PDF" class="rename-btn p-1 rounded opacity-65 hover:opacity-100">
+                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                </button>
+                <button title="Favourite" class="fav-btn p-1 rounded ${book.is_favorite ? 'text-rose-500' : 'opacity-50 hover:opacity-100'}">
+                  <i data-lucide="heart" class="w-3.5 h-3.5 ${book.is_favorite ? 'fill-current' : ''}"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-0.5 mt-1" title="Rate this book">${starsHtml}</div>
+
+            <p class="text-xs opacity-70 mt-1">Page ${book.last_page} of ${book.total_pages} (${pct}%)</p>
+            <div class="w-full h-2 rounded-full bg-black/10 mt-1.5 overflow-hidden">
               <div class="h-full accent-bg" style="width: ${pct}%;"></div>
             </div>
+
             <div class="flex items-center gap-2 mt-3">
               <button class="open-book-btn px-3 py-1.5 rounded-lg accent-bg text-xs font-semibold">
-                ${book.lastPage > 1 ? 'Continue' : 'Read'}
+                ${book.last_page > 1 ? 'Continue' : 'Read'}
               </button>
               <button class="delete-book-btn px-2.5 py-1.5 rounded-lg bg-black/5 text-xs opacity-70 hover:opacity-100">
                 Delete
@@ -468,35 +763,144 @@
             </div>
           </div>
         `;
+
         card.querySelector('.open-book-btn').addEventListener('click', () => openReader(book.id));
-        card.querySelector('.delete-book-btn').addEventListener('click', async () => {
-          await deleteBook(book.id);
-          await renderLibrary();
+
+        card.querySelector('.rename-btn').addEventListener('click', async () => {
+          const nextTitle = prompt('Enter new PDF title:', book.title);
+          if (!nextTitle || !nextTitle.trim()) return;
+          book.title = nextTitle.trim();
+          await sb.from('user_books').update({ title: book.title, updated_at: Date.now() }).eq('id', book.id);
+          renderShelfGrid();
         });
+
+        card.querySelector('.fav-btn').addEventListener('click', async () => {
+          book.is_favorite = !book.is_favorite;
+          await sb.from('user_books').update({ is_favorite: book.is_favorite }).eq('id', book.id);
+          updateStats();
+          renderShelfGrid();
+        });
+
+        card.querySelectorAll('.star-btn').forEach(starEl => {
+          starEl.addEventListener('click', async () => {
+            const val = Number(starEl.dataset.star);
+            book.rating = book.rating === val ? 0 : val;
+            await sb.from('user_books').update({ rating: book.rating }).eq('id', book.id);
+            renderShelfGrid();
+          });
+        });
+
+        card.querySelector('.delete-book-btn').addEventListener('click', async () => {
+          await sb.storage.from(BUCKET_NAME).remove([book.storage_path]);
+          await sb.from('user_books').delete().eq('id', book.id);
+          booksCache = booksCache.filter(b => b.id !== book.id);
+          updateStats();
+          renderShelfGrid();
+        });
+
         grid.appendChild(card);
       });
-
-      document.getElementById('statAvgProgress').textContent = Math.round(totalPct / books.length) + '%';
-      document.getElementById('statCompleted').textContent = completedCount;
+      lucide.createIcons();
     }
 
-    // ==================== CONTINUOUS SCROLLABLE READER ====================
-    async function openReader(bookId) {
-      const books = await getAllBooks();
-      const book = books.find(b => b.id === bookId);
-      if (!book) return;
+    function updateStats() {
+      document.getElementById('statTotalBooks').textContent = booksCache.length;
+      if (booksCache.length === 0) {
+        document.getElementById('statAvgProgress').textContent = '0%';
+        document.getElementById('statCompleted').textContent = '0';
+        document.getElementById('statFavorites').textContent = '0';
+        return;
+      }
+      let totalPct = 0;
+      let completedCount = 0;
+      let favCount = 0;
+      booksCache.forEach(b => {
+        const pct = getBookProgressPct(b);
+        totalPct += pct;
+        if (pct >= 100) completedCount++;
+        if (b.is_favorite) favCount++;
+      });
+      document.getElementById('statAvgProgress').textContent = Math.round(totalPct / booksCache.length) + '%';
+      document.getElementById('statCompleted').textContent = completedCount;
+      document.getElementById('statFavorites').textContent = favCount;
+    }
 
-      activeBookId = book.id;
-      currentPage = book.lastPage || 1;
+    async function renderLibrary() {
+      if (!sb || !currentUser) return;
+      setSyncStatus('Syncing...');
+      const { data, error } = await sb
+        .from('user_books')
+        .select('*')
+        .eq('user_email', currentUser.email)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        setSyncStatus('Offline / Error');
+        return;
+      }
+      setSyncStatus('Synced');
+      booksCache = data || [];
+      updateStats();
+      renderShelfGrid();
+    }
+
+    // ==================== SCROLLABLE READER + MARK LINE ====================
+    async function openReader(bookId) {
+      const book = booksCache.find(b => b.id === bookId);
+      if (!book || !sb) return;
+
+      activeBook = book;
+      currentPage = book.last_page || 1;
+      markLineMode = false;
+      syncMarkLineButton();
+
       document.getElementById('readerBookTitle').textContent = book.title;
       showView('readerView');
 
-      pdfDoc = await pdfjsLib.getDocument({ data: book.fileData.slice(0) }).promise;
+      const { data: blob, error } = await sb.storage.from(BUCKET_NAME).download(book.storage_path);
+      if (error || !blob) {
+        alert('Could not download PDF from cloud: ' + (error?.message || 'Unknown error'));
+        showView('homeView');
+        return;
+      }
+
+      const arrayBuffer = await blob.arrayBuffer();
+      pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       totalPages = pdfDoc.numPages;
       document.getElementById('totalPagesLabel').textContent = `/ ${totalPages}`;
       document.getElementById('pageJumpInput').max = totalPages;
 
       await buildScrollablePages(currentPage);
+    }
+
+    function syncMarkLineButton() {
+      const btn = document.getElementById('toggleMarkLineBtn');
+      btn.classList.toggle('accent-bg', markLineMode);
+      document.querySelectorAll('.paper-page').forEach(p => p.classList.toggle('mark-mode', markLineMode));
+    }
+
+    document.getElementById('toggleMarkLineBtn').addEventListener('click', () => {
+      markLineMode = !markLineMode;
+      syncMarkLineButton();
+    });
+
+    document.getElementById('clearMarkLineBtn').addEventListener('click', async () => {
+      if (!activeBook) return;
+      activeBook.marked_line = null;
+      document.querySelectorAll('.last-line-marker').forEach(el => el.remove());
+      if (sb) await sb.from('user_books').update({ marked_line: null }).eq('id', activeBook.id);
+    });
+
+    function renderLineMarkerOnPage(pageNum, container) {
+      container.querySelectorAll('.last-line-marker').forEach(el => el.remove());
+      const mark = activeBook?.marked_line;
+      if (!mark || Number(mark.page) !== Number(pageNum)) return;
+
+      const marker = document.createElement('div');
+      marker.className = 'last-line-marker';
+      marker.style.top = (mark.yRatio * 100) + '%';
+      marker.innerHTML = `<span class="last-line-tag">Last Line Read</span>`;
+      container.appendChild(marker);
     }
 
     async function buildScrollablePages(targetPageToScroll) {
@@ -506,39 +910,47 @@
       if (pageObserver) pageObserver.disconnect();
 
       document.getElementById('zoomLabel').textContent = Math.round(zoomScale * 100) + '%';
-
-      // Get page 1 dimensions as baseline for lightweight placeholders
       const firstPage = await pdfDoc.getPage(1);
       const baseViewport = firstPage.getViewport({ scale: zoomScale });
 
       for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
         const slot = document.createElement('div');
-        slot.className = 'paper-page flex items-center justify-center';
+        slot.className = 'paper-page flex items-center justify-center' + (markLineMode ? ' mark-mode' : '');
         slot.dataset.pageNum = pageNum;
         slot.style.width = baseViewport.width + 'px';
         slot.style.maxWidth = '100%';
         slot.style.minHeight = baseViewport.height + 'px';
         slot.innerHTML = `<span class="text-xs opacity-40">Loading page ${pageNum}...</span>`;
+
+        slot.addEventListener('click', async (e) => {
+          if (!markLineMode || !activeBook) return;
+          const rect = slot.getBoundingClientRect();
+          const yRatio = Math.max(0.02, Math.min(0.98, (e.clientY - rect.top) / rect.height));
+          activeBook.marked_line = { page: pageNum, yRatio };
+          renderLineMarkerOnPage(pageNum, slot);
+          markLineMode = false;
+          syncMarkLineButton();
+          if (sb) {
+            await sb.from('user_books').update({ marked_line: activeBook.marked_line }).eq('id', activeBook.id);
+          }
+        });
+
+        renderLineMarkerOnPage(pageNum, slot);
         wrapper.appendChild(slot);
       }
 
-      // Lazy-render visible pages & track active scroll page
       pageObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-          const pageNum = Number(entry.target.dataset.pageNum);
           if (entry.isIntersecting) {
-            renderSinglePageCanvas(pageNum, entry.target);
+            renderSinglePageCanvas(Number(entry.target.dataset.pageNum), entry.target);
           }
         });
       }, { root: document.getElementById('scrollContainer'), rootMargin: '600px 0px' });
 
       document.querySelectorAll('.paper-page').forEach(el => pageObserver.observe(el));
 
-      // Jump to saved page after slots exist
       const targetSlot = wrapper.querySelector(`[data-page-num="${targetPageToScroll}"]`);
-      if (targetSlot) {
-        targetSlot.scrollIntoView({ behavior: 'auto', block: 'start' });
-      }
+      if (targetSlot) targetSlot.scrollIntoView({ behavior: 'auto', block: 'start' });
       updateScrollProgressUI(targetPageToScroll);
     }
 
@@ -559,27 +971,25 @@
 
       container.style.width = viewport.width + 'px';
       container.style.minHeight = 'auto';
-      container.innerHTML = '';
-      container.appendChild(canvas);
+      container.querySelectorAll('span.text-xs').forEach(s => s.remove());
+      container.prepend(canvas);
 
       const ctx = canvas.getContext('2d');
       ctx.scale(dpr, dpr);
       await page.render({ canvasContext: ctx, viewport }).promise;
+      renderLineMarkerOnPage(pageNum, container);
     }
 
-    // Track current page on scroll & persist progress
-    let saveProgressTimer = null;
+    let progressSaveTimer = null;
     document.getElementById('scrollContainer').addEventListener('scroll', () => {
       const container = document.getElementById('scrollContainer');
-      const containerTop = container.getBoundingClientRect().top;
-      const midPoint = containerTop + container.clientHeight * 0.35;
+      const midPoint = container.getBoundingClientRect().top + container.clientHeight * 0.35;
 
       let closestPage = currentPage;
       let closestDist = Infinity;
 
       document.querySelectorAll('.paper-page').forEach(slot => {
-        const rect = slot.getBoundingClientRect();
-        const dist = Math.abs(rect.top - midPoint);
+        const dist = Math.abs(slot.getBoundingClientRect().top - midPoint);
         if (dist < closestDist) {
           closestDist = dist;
           closestPage = Number(slot.dataset.pageNum);
@@ -590,50 +1000,48 @@
         currentPage = closestPage;
         updateScrollProgressUI(currentPage);
 
-        clearTimeout(saveProgressTimer);
-        saveProgressTimer = setTimeout(async () => {
-          const books = await getAllBooks();
-          const book = books.find(b => b.id === activeBookId);
-          if (book) {
-            book.lastPage = currentPage;
-            book.updatedAt = Date.now();
-            await saveBook(book);
+        clearTimeout(progressSaveTimer);
+        progressSaveTimer = setTimeout(async () => {
+          if (sb && activeBook) {
+            const now = Date.now();
+            activeBook.last_page = currentPage;
+            activeBook.updated_at = now;
+            await sb.from('user_books').update({ last_page: currentPage, updated_at: now }).eq('id', activeBook.id);
           }
-        }, 350);
+        }, 500);
       }
     });
 
     function updateScrollProgressUI(pageNum) {
       document.getElementById('pageJumpInput').value = pageNum;
-      const pct = Math.min(100, Math.round((pageNum / totalPages) * 100));
+      const pct = Math.min(100, Math.round((pageNum / Math.max(1, totalPages)) * 100));
       document.getElementById('readerPercentBadge').textContent = pct + '%';
       document.getElementById('readerProgressLine').style.width = pct + '%';
     }
 
-    // Jump to typed page number
     document.getElementById('pageJumpInput').addEventListener('change', (e) => {
       const target = Math.max(1, Math.min(totalPages, Number(e.target.value) || 1));
       const slot = document.querySelector(`.paper-page[data-page-num="${target}"]`);
       if (slot) slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    // Zoom controls (preserves current scroll page)
     document.getElementById('zoomInBtn').addEventListener('click', () => {
       zoomScale = Math.min(2.4, +(zoomScale + 0.15).toFixed(2));
       buildScrollablePages(currentPage);
     });
+
     document.getElementById('zoomOutBtn').addEventListener('click', () => {
       zoomScale = Math.max(0.6, +(zoomScale - 0.15).toFixed(2));
       buildScrollablePages(currentPage);
     });
 
-    // Return to Library
     document.getElementById('backToLibraryBtn').addEventListener('click', async () => {
+      markLineMode = false;
       showView('homeView');
       await renderLibrary();
     });
 
-    // ==================== COLOUR MODAL EVENTS ====================
+    // ==================== MODALS ====================
     const colorModal = document.getElementById('colorModal');
     document.getElementById('openColorModalBtn').addEventListener('click', () => colorModal.classList.remove('hidden'));
     document.getElementById('readerColorBtn').addEventListener('click', () => colorModal.classList.remove('hidden'));
@@ -641,7 +1049,7 @@
     document.getElementById('doneColorModalBtn').addEventListener('click', () => colorModal.classList.add('hidden'));
 
     document.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', () => applyColors(PRESETS[btn.dataset.preset]));
+      btn.addEventListener('click', () => applyColors(PRESETS[btn.dataset.preset], true));
     });
 
     ['pickBgApp', 'pickBgCard', 'pickText', 'pickAccent', 'pickPaper'].forEach(id => {
@@ -652,9 +1060,14 @@
           text: document.getElementById('pickText').value,
           accent: document.getElementById('pickAccent').value,
           paper: document.getElementById('pickPaper').value
-        });
+        }, true);
       });
     });
+
+    const musicModal = document.getElementById('musicModal');
+    document.getElementById('openMusicModalBtn').addEventListener('click', () => musicModal.classList.remove('hidden'));
+    document.getElementById('readerMusicBtn').addEventListener('click', () => musicModal.classList.remove('hidden'));
+    document.getElementById('closeMusicModalBtn').addEventListener('click', () => musicModal.classList.add('hidden'));
 
     initApp();
   </script>
