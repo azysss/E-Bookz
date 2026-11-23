@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumina Reader — Distraction-Free PDF E-Book Reader</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Literata -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- PDF.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <style>
+    :root {
+      --bg-app: #EFE6D5;
+      --bg-card: #F8F2E7;
+      --bg-toolbar: rgba(244, 236, 216, 0.92);
+      --text-main: #3B2F23;
+      --accent: #D97706;
+      --page-bg: #F4ECD8;
+      --page-filter: sepia(28%) brightness(97%) contrast(96%);
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+    }
+    .font-serif-book {
+      font-family: 'Literata', Georgia, serif;
+    }
+    .theme-app {
+      background-color: var(--bg-app);
+      color: var(--text-main);
+    }
+    .theme-card {
+      background-color: var(--bg-card);
+    }
+    .theme-toolbar {
+      background-color: var(--bg-toolbar);
+    }
+    .theme-accent-bg {
+      background-color: var(--accent);
+      color: #ffffff;
+    }
+    .theme-accent-text {
+      color: var(--accent);
+    }
+    /* Custom slim scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(156, 163, 175, 0.7);
+    }
+    /* Remove number input spinners */
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type='number'] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+<body class="overflow-hidden select-none">
+  <!-- Main Application Shell -->
+  <div id="app" class="theme-app relative w-screen h-screen flex flex-col overflow-hidden transition-colors duration-300">
+
+    <!-- ==================== 1. LOGIN / AUTHENTICATION SCREEN ==================== -->
+    <div id="auth-screen" class="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
+      <div class="theme-card max-w-md w-full rounded-3xl border border-current/10 p-7 sm:p-9 shadow-2xl space-y-6">
+        <div class="text-center space-y-2">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-current/5 border border-current/10 text-xs font-semibold tracking-wide uppercase">
+            <i data-lucide="book-open" class="w-3.5 h-3.5 theme-accent-text"></i>
+            <span>Lumina Reader</span>
+          </div>
+          <h1 class="font-serif-book text-2xl sm:text-3xl font-semibold tracking-tight pt-1">
+            Welcome Back
+          </h1>
+          <p class="text-xs sm:text-sm opacity-70">
+            Sign in to sync your reading progress, e-book library, and custom colour themes.
+          </p>
+        </div>
+
+        <!-- Auth Mode Tabs -->
+        <div class="flex p-1 rounded-2xl bg-current/5 border border-current/10 text-xs font-semibold">
+          <button id="auth-tab-signin" type="button" class="flex-1 py-2 rounded-xl theme-accent-bg transition-all">
+            Sign In
+          </button>
+          <button id="auth-tab-signup" type="button" class="flex-1 py-2 rounded-xl opacity-75 hover:opacity-100 transition-all">
+            Create Account
+          </button>
+        </div>
+
+        <!-- Email & Password Form -->
+        <form id="auth-form" class="space-y-4">
+          <div id="auth-name-field" class="hidden space-y-1.5">
+            <label class="block text-xs font-medium opacity-80">Display Name</label>
+            <input id="auth-name" type="text" placeholder="Alex Rivera" class="w-full px-3.5 py-2.5 rounded-xl bg-current/5 border border-current/15 text-sm focus:outline-none focus:border-amber-600" />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium opacity-80">Email Address</label>
+            <input id="auth-email" type="email" required placeholder="reader@example.com" class="w-full px-3.5 py-2.5 rounded-xl bg-current/5 border border-current/15 text-sm focus:outline-none focus:border-amber-600" />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium opacity-80">Password</label>
+            <input id="auth-password" type="password" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-current/5 border border-current/15 text-sm focus:outline-none focus:border-amber-600" />
+          </div>
+
+          <p id="auth-error" class="hidden text-xs text-red-500 font-medium bg-red-500/10 px-3 py-2 rounded-xl"></p>
+
+          <button id="auth-submit-btn" type="submit" class="w-full py-3 rounded-xl theme-accent-bg font-semibold text-sm shadow-lg hover:opacity-95 transition-opacity">
+            Sign In
+          </button>
+        </form>
+
+        <div class="relative flex items-center justify-center">
+          <div class="border-t border-current/15 w-full"></div>
+          <span class="px-3 text-[11px] uppercase tracking-wider opacity-50 theme-card">or</span>
+          <div class="border-t border-current/15 w-full"></div>
+        </div>
+
+        <!-- Google & Guest Quick Sign-In -->
+        <div class="space-y-2.5">
+          <button id="google-signin-btn" type="button" class="w-full py-2.5 px-4 rounded-xl bg-current/5 hover:bg-current/10 border border-current/15 text-xs sm:text-sm font-medium flex items-center justify-center gap-2.5 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.6 2.8C6.1 7.2 8.8 5 12 5z"/>
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.5H12v4.8h6.5c-.3 1.5-1.1 2.8-2.4 3.6l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+              <path fill="#FBBC05" d="M5.2 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.6 7.4C.6 9.4 0 11.6 0 14s.6 4.6 1.6 6.6l3.6-2.8z"/>
+              <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.2 0-5.9-2.2-6.8-5.1l-3.6 2.8C3.5 21.4 7.4 24 12 24z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <button id="guest-signin-btn" type="button" class="w-full py-2.5 px-4 rounded-xl hover:bg-current/5 text-xs opacity-75 hover:opacity-100 font-medium flex items-center justify-center gap-1.5 transition-all">
+            <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+            <span>Continue as Guest Reader</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. HOME PAGE / LIBRARY DASHBOARD ==================== -->
+    <div id="home-screen" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+      <!-- Home Top Header -->
+      <header class="theme-toolbar h-16 border-b border-current/10 px-4 sm:px-8 flex items-center justify-between gap-3 shrink-0 backdrop-blur-md z-20">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl theme-accent-bg flex items-center justify-center shadow-sm">
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="font-serif-book text-base sm:text-lg font-semibold leading-tight">Lumina Library</h1>
+            <p class="text-[11px] opacity-60 hidden sm:block">Personal E-Book Shelf</p>
+          </div>
+        </div>
+
+        <!-- Right Controls: Edit Colours, User Profile, Sign Out -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button id="open-color-modal-btn" type="button" class="px-3 py-2 rounded-xl bg-current/5 hover:bg-current/10 border border-current/15 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+            <i data-lucide="palette" class="w-4 h-4 theme-accent-text"></i>
+            <span>Edit Colours</span>
+          </button>
+
+          <div class="h-5 w-px bg-current/15 hidden sm:block"></div>
+
+          <!-- User Badge -->
+          <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-current/5 border border-current/10">
+            <div id="user-avatar" class="w-6 h-6 rounded-full theme-accent-bg text-[11px] font-bold flex items-center justify-center uppercase">
+              U
+            </div>
+            <span id="user-display-name" class="text-xs font-medium max-w-[110px] sm:max-w-[160px] truncate">Reader</span>
+          </div>
+
+          <button id="signout-btn" title="Sign Out" class="p-2 rounded-xl hover:bg-red-500/15 hover:text-red-500 transition-colors">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Home Scrollable Main Content -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-8">
+        <div class="max-w-6xl mx-auto space-y-8">
+
+          <!-- Top Summary & Upload Banner -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <!-- Reading Overview Card -->
+            <div class="theme-card rounded-3xl border border-current/10 p-6 flex flex-col justify-between shadow-sm">
+              <div class="space-y-1">
+                <span class="text-xs font-semibold uppercase tracking-wider opacity-60">Reading Overview</span>
+                <h2 id="home-welcome-heading" class="font-serif-book text-2xl font-semibold">Your Shelf</h2>
+              </div>
+
+              <div class="grid grid-cols-3 gap-3 pt-5">
+                <div class="p-3 rounded-2xl bg-current/5">
+                  <div id="stat-total-books" class="text-xl font-bold theme-accent-text">0</div>
+                  <div class="text-[11px] opacity-65">E-Books</div>
+                </div>
+                <div class="p-3 rounded-2xl bg-current/5">
+                  <div id="stat-avg-progress" class="text-xl font-bold">0%</div>
+                  <div class="text-[11px] opacity-65">Avg Progress</div>
+                </div>
+                <div class="p-3 rounded-2xl bg-current/5">
+                  <div id="stat-completed-books" class="text-xl font-bold">0</div>
+                  <div class="text-[11px] opacity-65">Finished</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upload New E-Book Dropzone -->
+            <div id="home-drop-zone" class="lg:col-span-2 group relative rounded-3xl border-2 border-dashed border-current/25 hover:border-amber-600 theme-card p-6 sm:p-8 transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-5 shadow-sm">
+              <input id="home-file-input" type="file" accept="application/pdf,.pdf" multiple class="hidden" />
+              <div class="flex items-center gap-4 text-center sm:text-left flex-col sm:flex-row">
+                <div class="w-14 h-14 rounded-2xl theme-accent-bg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-md">
+                  <i data-lucide="file-up" class="w-7 h-7"></i>
+                </div>
+                <div class="space-y-1">
+                  <h3 class="text-base sm:text-lg font-semibold">Upload PDF E-Books to Library</h3>
+                  <p class="text-xs sm:text-sm opacity-70 max-w-md">
+                    Drag & drop one or multiple PDF files here. Each book is saved to your shelf with automatic page progress tracking.
+                  </p>
+                </div>
+              </div>
+              <button type="button" class="px-5 py-2.5 rounded-xl theme-accent-bg text-xs sm:text-sm font-semibold shadow-md shrink-0">
+                + Add PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Library Books Section -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-serif-book text-lg sm:text-xl font-semibold">Uploaded E-Books</h3>
+              <span id="library-sync-badge" class="text-[11px] px-2.5 py-1 rounded-full bg-current/5 opacity-70">
+                Synced
+              </span>
+            </div>
+
+            <!-- Empty Shelf State -->
+            <div id="empty-library-state" class="theme-card rounded-3xl border border-current/10 p-12 text-center space-y-3">
+              <div class="w-14 h-14 rounded-2xl bg-current/5 mx-auto flex items-center justify-center opacity-60">
+                <i data-lucide="library" class="w-7 h-7"></i>
+              </div>
+              <h4 class="font-serif-book text-lg font-semibold">Your library is empty</h4>
+              <p class="text-xs sm:text-sm opacity-65 max-w-sm mx-auto">
+                Upload your first PDF e-book above to start reading and tracking your page-by-page progress.
+              </p>
+            </div>
+
+            <!-- Responsive Grid of E-Book Cards -->
+            <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ==================== 3. SINGLE-PAGE READER INTERFACE ==================== -->
+    <div id="reader-screen" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+
+      <!-- Top Toolbar -->
+      <header id="top-toolbar" class="theme-toolbar h-14 border-b border-current/10 px-3 sm:px-5 flex items-center justify-between gap-2 z-30 backdrop-blur-md transition-all duration-300 shrink-0">
+        <!-- Left: Back to Home/Library, Sidebar Toggle, Title -->
+        <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <button id="back-home-btn" title="Back to Home Library" class="px-2.5 py-1.5 rounded-xl bg-current/5 hover:bg-current/10 border border-current/10 transition-colors flex items-center gap-1.5 text-xs font-semibold shrink-0">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Library</span>
+          </button>
+
+          <button id="toggle-sidebar-btn" title="Table of Contents & Bookmarks" class="p-2 rounded-xl hover:bg-current/10 transition-colors">
+            <i data-lucide="panel-left" class="w-5 h-5"></i>
+          </button>
+
+          <div class="h-4 w-px bg-current/15 mx-0.5 hidden sm:block"></div>
+
+          <h2 id="book-title" class="font-serif-book text-sm sm:text-base font-medium truncate max-w-[130px] sm:max-w-xs md:max-w-sm">
+            Document Title
+          </h2>
+        </div>
+
+        <!-- Center Controls: Zoom & Fit -->
+        <div class="hidden md:flex items-center gap-1 bg-current/5 p-1 rounded-xl border border-current/10">
+          <button id="zoom-out-btn" title="Zoom Out (-)" class="p-1.5 rounded-lg hover:bg-current/10 transition-colors">
+            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+          </button>
+          <span id="zoom-level" class="text-xs font-medium w-12 text-center select-none">100%</span>
+          <button id="zoom-in-btn" title="Zoom In (+)" class="p-1.5 rounded-lg hover:bg-current/10 transition-colors">
+            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+          </button>
+          <div class="w-px h-4 bg-current/15 mx-1"></div>
+          <button id="fit-width-btn" title="Fit to Width" class="px-2.5 py-1 rounded-lg text-xs font-medium hover:bg-current/10 transition-colors">
+            Fit Width
+          </button>
+          <button id="fit-page-btn" title="Fit to Page" class="px-2.5 py-1 rounded-lg text-xs font-medium hover:bg-current/10 transition-colors">
+            Fit Page
+          </button>
+        </div>
+
+        <!-- Right Controls: Colours Modal, Bookmark, Distraction-Free, Fullscreen -->
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <button id="reader-color-btn" title="Edit Colours" class="p-2 rounded-xl hover:bg-current/10 transition-colors">
+            <i data-lucide="palette" class="w-5 h-5 theme-accent-text"></i>
+          </button>
+
+          <button id="bookmark-btn" title="Bookmark Current Page (B)" class="p-2 rounded-xl hover:bg-current/10 transition-colors">
+            <i id="bookmark-icon" data-lucide="bookmark" class="w-5 h-5"></i>
+          </button>
+
+          <button id="zen-mode-btn" title="Distraction-Free Mode (H)" class="p-2 rounded-xl hover:bg-current/10 transition-colors">
+            <i data-lucide="eye-off" class="w-5 h-5"></i>
+          </button>
+
+          <button id="fullscreen-btn" title="Toggle Fullscreen (F)" class="hidden sm:flex p-2 rounded-xl hover:bg-current/10 transition-colors">
+            <i data-lucide="maximize" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Workspace (Sidebar + Single-Page Viewport) -->
+      <div class="flex-1 flex relative overflow-hidden">
+
+        <!-- Collapsible Left Sidebar (TOC & Bookmarks) -->
+        <aside id="sidebar" class="theme-card hidden w-72 sm:w-80 border-r border-current/10 flex flex-col z-20 backdrop-blur-md transition-all duration-300 shrink-0 absolute md:relative inset-y-0 left-0 shadow-xl md:shadow-none">
+          <!-- Sidebar Tabs -->
+          <div class="p-2.5 border-b border-current/10 flex gap-1">
+            <button id="tab-toc" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold theme-accent-bg transition-colors">
+              Contents
+            </button>
+            <button id="tab-bookmarks" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold hover:bg-current/10 transition-colors">
+              Bookmarks (<span id="bookmark-count">0</span>)
+            </button>
+          </div>
+
+          <!-- Table of Contents Panel -->
+          <div id="panel-toc" class="flex-1 overflow-y-auto p-3 space-y-1 text-sm">
+            <div id="toc-list" class="space-y-0.5"></div>
+          </div>
+
+          <!-- Bookmarks Panel -->
+          <div id="panel-bookmarks" class="hidden flex-1 overflow-y-auto p-3 space-y-2 text-sm">
+            <div id="bookmarks-list" class="space-y-1.5"></div>
+          </div>
+        </aside>
+
+        <!-- Single-Page PDF Canvas Viewport -->
+        <main id="viewport" class="flex-1 overflow-auto flex items-center justify-center p-4 sm:p-8 relative select-none">
+          <!-- Single Page Frame -->
+          <div id="page-wrapper" class="relative shadow-2xl rounded-sm overflow-hidden transition-shadow duration-200 my-auto">
+            <canvas id="pdf-canvas" class="block max-w-none"></canvas>
+          </div>
+        </main>
+      </div>
+
+      <!-- Bottom Navigation & Progress Bar -->
+      <footer id="bottom-toolbar" class="theme-toolbar border-t border-current/10 px-4 py-2.5 flex flex-col gap-2 z-30 backdrop-blur-md transition-all duration-300 shrink-0">
+        <!-- Interactive Scrubber / Progress Bar -->
+        <div class="w-full flex items-center gap-3">
+          <div id="progress-track" class="relative flex-1 h-1.5 bg-current/15 rounded-full cursor-pointer group">
+            <div id="progress-fill" class="absolute top-0 left-0 h-full theme-accent-bg rounded-full transition-all duration-150" style="width: 0%;"></div>
+          </div>
+          <span id="progress-percent" class="text-xs font-medium opacity-70 w-10 text-right tabular-nums">0%</span>
+        </div>
+
+        <!-- Page Navigation & Mobile Zoom Controls -->
+        <div class="flex items-center justify-between gap-2">
+          <!-- Mobile Zoom Controls -->
+          <div class="flex md:hidden items-center gap-1">
+            <button id="mobile-zoom-out" class="p-1.5 rounded-lg hover:bg-current/10">
+              <i data-lucide="zoom-out" class="w-4 h-4"></i>
+            </button>
+            <button id="mobile-fit-width" class="px-2 py-1 rounded-lg text-xs font-medium bg-current/5">Fit</button>
+            <button id="mobile-zoom-in" class="p-1.5 rounded-lg hover:bg-current/10">
+              <i data-lucide="zoom-in" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div class="hidden md:block text-xs opacity-50">
+            Use <kbd class="px-1.5 py-0.5 rounded bg-current/10 font-mono">←</kbd> <kbd class="px-1.5 py-0.5 rounded bg-current/10 font-mono">→</kbd> arrow keys or swipe to turn pages
+          </div>
+
+          <!-- Center Page Turn Controls -->
+          <div class="flex items-center gap-2 mx-auto md:mx-0">
+            <button id="prev-page-btn" title="Previous Page (←)" class="p-2 rounded-xl hover:bg-current/10 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+              <span>Page</span>
+              <input id="page-input" type="number" min="1" value="1" class="w-12 sm:w-14 text-center py-1 px-1.5 rounded-lg bg-current/10 border border-current/15 focus:outline-none focus:border-amber-600 tabular-nums" />
+              <span class="opacity-65">of <span id="total-pages">1</span></span>
+            </div>
+
+            <button id="next-page-btn" title="Next Page (→)" class="p-2 rounded-xl hover:bg-current/10 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <div class="hidden md:block w-36"></div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- ==================== 4. EDITABLE COLOURS MODAL ==================== -->
+    <div id="color-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="theme-card max-w-lg w-full rounded-3xl border border-current/15 p-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="palette" class="w-5 h-5 theme-accent-text"></i>
+            <h3 class="font-serif-book text-lg font-semibold">Customize Colours</h3>
+          </div>
+          <button id="close-color-modal-btn" class="p-1.5 rounded-xl hover:bg-current/10">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Quick Theme Presets -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold uppercase tracking-wider opacity-60">Presets</label>
+          <div class="grid grid-cols-5 gap-2">
+            <button data-preset="sepia" class="preset-btn p-2 rounded-xl border border-current/15 text-xs font-medium flex flex-col items-center gap-1.5 hover:bg-current/5">
+              <span class="w-6 h-6 rounded-full bg-[#EFE6D5] border border-amber-800/30"></span>
+              <span>Sepia</span>
+            </button>
+            <button data-preset="light" class="preset-btn p-2 rounded-xl border border-current/15 text-xs font-medium flex flex-col items-center gap-1.5 hover:bg-current/5">
+              <span class="w-6 h-6 rounded-full bg-[#F5F5F7] border border-gray-400"></span>
+              <span>Light</span>
+            </button>
+            <button data-preset="dark" class="preset-btn p-2 rounded-xl border border-current/15 text-xs font-medium flex flex-col items-center gap-1.5 hover:bg-current/5">
+              <span class="w-6 h-6 rounded-full bg-[#121214] border border-gray-500"></span>
+              <span>Dark</span>
+            </button>
+            <button data-preset="midnight" class="preset-btn p-2 rounded-xl border border-current/15 text-xs font-medium flex flex-col items-center gap-1.5 hover:bg-current/5">
+              <span class="w-6 h-6 rounded-full bg-[#0F172A] border border-sky-400/40"></span>
+              <span>Midnight</span>
+            </button>
+            <button data-preset="forest" class="preset-btn p-2 rounded-xl border border-current/15 text-xs font-medium flex flex-col items-center gap-1.5 hover:bg-current/5">
+              <span class="w-6 h-6 rounded-full bg-[#E8EFEA] border border-emerald-700/40"></span>
+              <span>Forest</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Individual Custom Color Pickers -->
+        <div class="space-y-3 pt-1">
+          <label class="block text-xs font-semibold uppercase tracking-wider opacity-60">Custom Palette</label>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <label class="flex items-center justify-between p-2.5 rounded-xl bg-current/5 border border-current/10 cursor-pointer">
+              <span class="font-medium">Background</span>
+              <input id="picker-bgApp" type="color" class="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0" />
+            </label>
+
+            <label class="flex items-center justify-between p-2.5 rounded-xl bg-current/5 border border-current/10 cursor-pointer">
+              <span class="font-medium">Cards & Sidebar</span>
+              <input id="picker-bgCard" type="color" class="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0" />
+            </label>
+
+            <label class="flex items-center justify-between p-2.5 rounded-xl bg-current/5 border border-current/10 cursor-pointer">
+              <span class="font-medium">Text Colour</span>
+              <input id="picker-textMain" type="color" class="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0" />
+            </label>
+
+            <label class="flex items-center justify-between p-2.5 rounded-xl bg-current/5 border border-current/10 cursor-pointer">
+              <span class="font-medium">Accent & Progress</span>
+              <input id="picker-accent" type="color" class="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0" />
+            </label>
+
+            <label class="sm:col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-current/5 border border-current/10 cursor-pointer">
+              <span class="font-medium">E-Book Paper Tint</span>
+              <input id="picker-pageBg" type="color" class="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0" />
+            </label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="save-color-modal-btn" class="px-5 py-2.5 rounded-xl theme-accent-bg text-xs font-semibold shadow-md">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="hidden fixed inset-0 flex flex-col items-center justify-center bg-black/25 backdrop-blur-xs z-50">
+      <div class="px-6 py-5 rounded-2xl bg-white/95 text-gray-900 shadow-xl flex flex-col items-center">
+        <div class="w-8 h-8 border-4 border-amber-600/30 border-t-amber-600 rounded-full animate-spin"></div>
+        <p id="loader-text" class="mt-2.5 text-xs font-medium">Processing...</p>
+      </div>
+    </div>
+
+    <!-- Floating Exit Distraction-Free Button -->
+    <button id="exit-zen-btn" title="Exit Distraction-Free Mode (H or Esc)" class="hidden fixed top-4 right-4 z-50 px-3.5 py-2 rounded-full bg-black/75 text-white backdrop-blur-md text-xs font-medium flex items-center gap-1.5 shadow-lg hover:bg-black transition-all">
+      <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+      <span>Show Controls</span>
+    </button>
+
+    <!-- Non-Intrusive Toast Notification -->
+    <div id="toast" class="pointer-events-none fixed bottom-20 left-1/2 -translate-x-1/2 z-50 opacity-0 translate-y-2 transition-all duration-200">
+      <div id="toast-message" class="px-4 py-2 rounded-full bg-gray-900/90 text-white text-xs font-medium shadow-lg backdrop-blur-md">
+        Saved
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase + Application Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import {
+      getAuth,
+      signInAnonymously,
+      signInWithCustomToken,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      updateProfile,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc,
+      deleteDoc,
+      onSnapshot,
+      collection
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // ==================== FIREBASE SETUP ====================
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'lumina-reader-app';
+    let firebaseApp = null;
+    let auth = null;
+    let db = null;
+    let firebaseAvailable = false;
+
+    try {
+      if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        const firebaseConfig = JSON.parse(__firebase_config);
+        firebaseApp = initializeApp(firebaseConfig);
+        auth = getAuth(firebaseApp);
+        db = getFirestore(firebaseApp);
+        firebaseAvailable = true;
+      }
+    } catch (e) {
+      console.warn('Firebase config unavailable, falling back to local mode:', e);
+    }
+
+    // ==================== INDEXEDDB FOR LOCAL PDF STORAGE ====================
+    const IDB_NAME = 'LuminaReaderPDFs';
+    const IDB_STORE = 'pdfFiles';
+
+    function openPdfDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const database = req.result;
+          if (!database.objectStoreNames.contains(IDB_STORE)) {
+            database.createObjectStore(IDB_STORE);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function savePdfBinary(key, arrayBuffer) {
+      const database = await openPdfDB();
+      return new Promise((resolve, reject) => {
+        const tx = database.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(arrayBuffer, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getPdfBinary(key) {
+      const database = await openPdfDB();
+      return new Promise((resolve, reject) => {
+        const tx = database.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function deletePdfBinary(key) {
+      const database = await openPdfDB();
+      return new Promise((resolve, reject) => {
+        const tx = database.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    // ==================== THEME PRESETS & CUSTOM COLOURS ====================
+    const THEME_PRESETS = {
+      sepia: {
+        name: 'sepia',
+        bgApp: '#EFE6D5',
+        bgCard: '#F8F2E7',
+        textMain: '#3B2F23',
+        accent: '#D97706',
+        pageBg: '#F4ECD8',
+        invertPage: false
+      },
+      light: {
+        name: 'light',
+        bgApp: '#F5F5F7',
+        bgCard: '#FFFFFF',
+        textMain: '#1D1D1F',
+        accent: '#2563EB',
+        pageBg: '#FFFFFF',
+        invertPage: false
+      },
+      dark: {
+        name: 'dark',
+        bgApp: '#121214',
+        bgCard: '#1C1C1E',
+        textMain: '#E5E5EA',
+        accent: '#F59E0B',
+        pageBg: '#1C1C1E',
+        invertPage: true
+      },
+      midnight: {
+        name: 'midnight',
+        bgApp: '#0F172A',
+        bgCard: '#1E293B',
+        textMain: '#E2E8F0',
+        accent: '#38BDF8',
+        pageBg: '#1E293B',
+        invertPage: true
+      },
+      forest: {
+        name: 'forest',
+        bgApp: '#E8EFEA',
+        bgCard: '#F3F8F5',
+        textMain: '#1E3528',
+        accent: '#15803D',
+        pageBg: '#EFF5F1',
+        invertPage: false
+      }
+    };
+
+    // ==================== APPLICATION STATE ====================
+    const state = {
+      user: null,
+      authMode: 'signin', // 'signin' | 'signup'
+      books: [], // Array of book metadata objects
+      unsubscribeBooks: null,
+      colors: { ...THEME_PRESETS.sepia },
+      activeBookId: null,
+      pdfDoc: null,
+      currentPage: 1,
+      totalPages: 0,
+      scale: 1.2,
+      fitMode: 'width',
+      renderTask: null,
+      pendingPage: null,
+      isRendering: false,
+      sidebarOpen: false,
+      zenMode: false,
+      bookmarks: [],
+      touchStartX: 0,
+      touchEndX: 0
+    };
+
+    // ==================== DOM ELEMENTS ====================
+    const els = {
+      app: document.getElementById('app'),
+      authScreen: document.getElementById('auth-screen'),
+      homeScreen: document.getElementById('home-screen'),
+      readerScreen: document.getElementById('reader-screen'),
+      // Auth
+      authTabSignin: document.getElementById('auth-tab-signin'),
+      authTabSignup: document.getElementById('auth-tab-signup'),
+      authForm: document.getElementById('auth-form'),
+      authNameField: document.getElementById('auth-name-field'),
+      authName: document.getElementById('auth-name'),
+      authEmail: document.getElementById('auth-email'),
+      authPassword: document.getElementById('auth-password'),
+      authError: document.getElementById('auth-error'),
+      authSubmitBtn: document.getElementById('auth-submit-btn'),
+      googleSigninBtn: document.getElementById('google-signin-btn'),
+      guestSigninBtn: document.getElementById('guest-signin-btn'),
+      // Home
+      userAvatar: document.getElementById('user-avatar'),
+      userDisplayName: document.getElementById('user-display-name'),
+      signoutBtn: document.getElementById('signout-btn'),
+      homeWelcomeHeading: document.getElementById('home-welcome-heading'),
+      statTotalBooks: document.getElementById('stat-total-books'),
+      statAvgProgress: document.getElementById('stat-avg-progress'),
+      statCompletedBooks: document.getElementById('stat-completed-books'),
+      homeDropZone: document.getElementById('home-drop-zone'),
+      homeFileInput: document.getElementById('home-file-input'),
+      emptyLibraryState: document.getElementById('empty-library-state'),
+      booksGrid: document.getElementById('books-grid'),
+      librarySyncBadge: document.getElementById('library-sync-badge'),
+      // Colours Modal
+      openColorModalBtn: document.getElementById('open-color-modal-btn'),
+      readerColorBtn: document.getElementById('reader-color-btn'),
+      colorModal: document.getElementById('color-modal'),
+      closeColorModalBtn: document.getElementById('close-color-modal-btn'),
+      saveColorModalBtn: document.getElementById('save-color-modal-btn'),
+      pickerBgApp: document.getElementById('picker-bgApp'),
+      pickerBgCard: document.getElementById('picker-bgCard'),
+      pickerTextMain: document.getElementById('picker-textMain'),
+      pickerAccent: document.getElementById('picker-accent'),
+      pickerPageBg: document.getElementById('picker-pageBg'),
+      // Reader
+      backHomeBtn: document.getElementById('back-home-btn'),
+      bookTitle: document.getElementById('book-title'),
+      viewport: document.getElementById('viewport'),
+      pageWrapper: document.getElementById('page-wrapper'),
+      canvas: document.getElementById('pdf-canvas'),
+      prevBtn: document.getElementById('prev-page-btn'),
+      nextBtn: document.getElementById('next-page-btn'),
+      pageInput: document.getElementById('page-input'),
+      totalPages: document.getElementById('total-pages'),
+      zoomLevel: document.getElementById('zoom-level'),
+      zoomInBtn: document.getElementById('zoom-in-btn'),
+      zoomOutBtn: document.getElementById('zoom-out-btn'),
+      fitWidthBtn: document.getElementById('fit-width-btn'),
+      fitPageBtn: document.getElementById('fit-page-btn'),
+      mobileZoomIn: document.getElementById('mobile-zoom-in'),
+      mobileZoomOut: document.getElementById('mobile-zoom-out'),
+      mobileFitWidth: document.getElementById('mobile-fit-width'),
+      progressTrack: document.getElementById('progress-track'),
+      progressFill: document.getElementById('progress-fill'),
+      progressPercent: document.getElementById('progress-percent'),
+      sidebar: document.getElementById('sidebar'),
+      toggleSidebarBtn: document.getElementById('toggle-sidebar-btn'),
+      tabToc: document.getElementById('tab-toc'),
+      tabBookmarks: document.getElementById('tab-bookmarks'),
+      panelToc: document.getElementById('panel-toc'),
+      panelBookmarks: document.getElementById('panel-bookmarks'),
+      tocList: document.getElementById('toc-list'),
+      bookmarksList: document.getElementById('bookmarks-list'),
+      bookmarkCount: document.getElementById('bookmark-count'),
+      bookmarkBtn: document.getElementById('bookmark-btn'),
+      bookmarkIcon: document.getElementById('bookmark-icon'),
+      zenModeBtn: document.getElementById('zen-mode-btn'),
+      exitZenBtn: document.getElementById('exit-zen-btn'),
+      fullscreenBtn: document.getElementById('fullscreen-btn'),
+      topToolbar: document.getElementById('top-toolbar'),
+      bottomToolbar: document.getElementById('bottom-toolbar'),
+      // Global UI
+      loader: document.getElementById('loader'),
+      loaderText: document.getElementById('loader-text'),
+      toast: document.getElementById('toast'),
+      toastMessage: document.getElementById('toast-message')
+    };
+
+    lucide.createIcons();
+
+    // ==================== COLOUR MANAGEMENT ====================
+    function isHexDark(hex) {
+      const clean = hex.replace('#', '');
+      if (clean.length !== 6) return false;
+      const r = parseInt(clean.substring(0, 2), 16);
+      const g = parseInt(clean.substring(2, 4), 16);
+      const b = parseInt(clean.substring(4, 6), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance < 0.45;
+    }
+
+    function applyColors(colorsObj, persist = false) {
+      state.colors = { ...state.colors, ...colorsObj };
+      const c = state.colors;
+      const root = document.documentElement.style;
+
+      root.setProperty('--bg-app', c.bgApp);
+      root.setProperty('--bg-card', c.bgCard);
+      root.setProperty('--bg-toolbar', c.bgCard);
+      root.setProperty('--text-main', c.textMain);
+      root.setProperty('--accent', c.accent);
+      root.setProperty('--page-bg', c.pageBg);
+
+      // Update color pickers
+      els.pickerBgApp.value = c.bgApp;
+      els.pickerBgCard.value = c.bgCard;
+      els.pickerTextMain.value = c.textMain;
+      els.pickerAccent.value = c.accent;
+      els.pickerPageBg.value = c.pageBg;
+
+      // Apply reader page tint / dark invert automatically based on paper luminance
+      const darkPaper = isHexDark(c.pageBg);
+      els.pageWrapper.style.backgroundColor = c.pageBg;
+      if (darkPaper) {
+        els.canvas.style.filter = 'invert(88%) hue-rotate(180deg) contrast(92%)';
+      } else if (c.pageBg.toLowerCase() === '#f4ecd8') {
+        els.canvas.style.filter = 'sepia(28%) brightness(97%) contrast(96%)';
+      } else {
+        els.canvas.style.filter = 'multiply';
+        els.canvas.style.mixBlendMode = 'multiply';
+      }
+      if (darkPaper || c.pageBg.toLowerCase() === '#f4ecd8') {
+        els.canvas.style.mixBlendMode = 'normal';
+      }
+
+      if (persist) {
+        saveUserColors();
+      }
+    }
+
+    async function saveUserColors() {
+      const uid = state.user?.uid || 'guest';
+      localStorage.setItem(`lumina_colors_${uid}`, JSON.stringify(state.colors));
+
+      if (firebaseAvailable && db && state.user && !state.user.isLocalGuest) {
+        try {
+          const prefRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'preferences', 'theme');
+          await setDoc(prefRef, state.colors, { merge: true });
+        } catch (err) {
+          console.warn('Could not sync theme colors to cloud:', err);
+        }
+      }
+    }
+
+    async function loadUserColors() {
+      const uid = state.user?.uid || 'guest';
+      const localRaw = localStorage.getItem(`lumina_colors_${uid}`);
+      if (localRaw) {
+        try {
+          applyColors(JSON.parse(localRaw), false);
+        } catch {}
+      }
+
+      if (firebaseAvailable && db && state.user && !state.user.isLocalGuest) {
+        try {
+          const prefRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'preferences', 'theme');
+          const snap = await getDoc(prefRef);
+          if (snap.exists()) {
+            applyColors(snap.data(), false);
+          }
+        } catch (err) {
+          console.warn('Could not fetch cloud theme colors:', err);
+        }
+      }
+    }
+
+    // Color Modal Events
+    function openColorModal() {
+      els.colorModal.classList.remove('hidden');
+    }
+    function closeColorModal() {
+      els.colorModal.classList.add('hidden');
+      saveUserColors();
+      showToast('Colour theme saved');
+    }
+
+    els.openColorModalBtn.addEventListener('click', openColorModal);
+    els.readerColorBtn.addEventListener('click', openColorModal);
+    els.closeColorModalBtn.addEventListener('click', closeColorModal);
+    els.saveColorModalBtn.addEventListener('click', closeColorModal);
+
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = THEME_PRESETS[btn.dataset.preset];
+        if (preset) applyColors(preset, true);
+      });
+    });
+
+    [
+      ['pickerBgApp', 'bgApp'],
+      ['pickerBgCard', 'bgCard'],
+      ['pickerTextMain', 'textMain'],
+      ['pickerAccent', 'accent'],
+      ['pickerPageBg', 'pageBg']
+    ].forEach(([elKey, propKey]) => {
+      els[elKey].addEventListener('input', (e) => {
+        applyColors({ [propKey]: e.target.value }, false);
+      });
+    });
+
+    // Apply default colors immediately
+    applyColors(THEME_PRESETS.sepia, false);
+
+    // ==================== AUTHENTICATION FLOW ====================
+    function switchView(viewName) {
+      els.authScreen.classList.add('hidden');
+      els.homeScreen.classList.add('hidden');
+      els.readerScreen.classList.add('hidden');
+
+      if (viewName === 'auth') els.authScreen.classList.remove('hidden');
+      if (viewName === 'home') els.homeScreen.classList.remove('hidden');
+      if (viewName === 'reader') els.readerScreen.classList.remove('hidden');
+    }
+
+    els.authTabSignin.addEventListener('click', () => {
+      state.authMode = 'signin';
+      els.authTabSignin.classList.add('theme-accent-bg');
+      els.authTabSignin.classList.remove('opacity-75');
+      els.authTabSignup.classList.remove('theme-accent-bg');
+      els.authTabSignup.classList.add('opacity-75');
+      els.authNameField.classList.add('hidden');
+      els.authSubmitBtn.textContent = 'Sign In';
+      els.authError.classList.add('hidden');
+    });
+
+    els.authTabSignup.addEventListener('click', () => {
+      state.authMode = 'signup';
+      els.authTabSignup.classList.add('theme-accent-bg');
+      els.authTabSignup.classList.remove('opacity-75');
+      els.authTabSignin.classList.remove('theme-accent-bg');
+      els.authTabSignin.classList.add('opacity-75');
+      els.authNameField.classList.remove('hidden');
+      els.authSubmitBtn.textContent = 'Create Account';
+      els.authError.classList.add('hidden');
+    });
+
+    els.authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      els.authError.classList.add('hidden');
+      const email = els.authEmail.value.trim();
+      const password = els.authPassword.value;
+      const displayName = els.authName.value.trim() || email.split('@')[0];
+
+      if (!firebaseAvailable || !auth) {
+        // Local fallback auth if Firebase isn't configured
+        onUserAuthenticated({
+          uid: 'local_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 16),
+          email,
+          displayName,
+          isLocalGuest: true
+        });
+        return;
+      }
+
+      try {
+        showLoader(state.authMode === 'signin' ? 'Signing in...' : 'Creating account...');
+        if (state.authMode === 'signup') {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          if (displayName) {
+            await updateProfile(cred.user, { displayName });
+          }
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
+      } catch (err) {
+        els.authError.textContent = err.message.replace('Firebase: ', '');
+        els.authError.classList.remove('hidden');
+      } finally {
+        hideLoader();
+      }
+    });
+
+    els.googleSigninBtn.addEventListener('click', async () => {
+      els.authError.classList.add('hidden');
+      if (!firebaseAvailable || !auth) {
+        showToast('Google Sign-In requires cloud auth; signing in as Guest.');
+        els.guestSigninBtn.click();
+        return;
+      }
+      try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        els.authError.textContent = err.message.replace('Firebase: ', '');
+        els.authError.classList.remove('hidden');
+      }
+    });
+
+    els.guestSigninBtn.addEventListener('click', async () => {
+      els.authError.classList.add('hidden');
+      if (firebaseAvailable && auth) {
+        try {
+          showLoader('Entering Guest Shelf...');
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+          return;
+        } catch (err) {
+          console.warn('Anonymous auth fallback to local guest:', err);
+        } finally {
+          hideLoader();
+        }
+      }
+      onUserAuthenticated({
+        uid: 'guest_local_user',
+        email: 'guest@lumina.local',
+        displayName: 'Guest Reader',
+        isLocalGuest: true
+      });
+    });
+
+    els.signoutBtn.addEventListener('click', async () => {
+      if (state.unsubscribeBooks) {
+        state.unsubscribeBooks();
+        state.unsubscribeBooks = null;
+      }
+      if (firebaseAvailable && auth && state.user && !state.user.isLocalGuest) {
+        try { await signOut(auth); } catch {}
+      }
+      state.user = null;
+      state.books = [];
+      switchView('auth');
+      showToast('Signed out');
+    });
+
+    if (firebaseAvailable && auth) {
+      onAuthStateChanged(auth, (firebaseUser) => {
+        if (firebaseUser) {
+          onUserAuthenticated({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Guest Reader'),
+            isLocalGuest: false
+          });
+        } else {
+          switchView('auth');
+        }
+      });
+    }
+
+    async function onUserAuthenticated(userObj) {
+      state.user = userObj;
+      const name = userObj.displayName || 'Reader';
+      els.userDisplayName.textContent = name;
+      els.userAvatar.textContent = name.charAt(0).toUpperCase();
+      els.homeWelcomeHeading.textContent = `${name}'s Shelf`;
+
+      await loadUserColors();
+      subscribeToUserBooks();
+      switchView('home');
+    }
+
+    // ==================== LIBRARY METADATA & PROGRESS SYNC ====================
+    function getLocalLibraryKey() {
+      return `lumina_library_${state.user?.uid || 'guest'}`;
+    }
+
+    function saveLocalLibraryCache() {
+      localStorage.setItem(getLocalLibraryKey(), JSON.stringify(state.books));
+    }
+
+    function loadLocalLibraryCache() {
+      try {
+        const raw = localStorage.getItem(getLocalLibraryKey());
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function subscribeToUserBooks() {
+      if (state.unsubscribeBooks) {
+        state.unsubscribeBooks();
+        state.unsubscribeBooks = null;
+      }
+
+      // Immediately hydrate from local cache for instant rendering
+      state.books = loadLocalLibraryCache();
+      renderBooksGrid();
+
+      if (firebaseAvailable && db && state.user && !state.user.isLocalGuest) {
+        els.librarySyncBadge.textContent = 'Cloud Synced';
+        const booksCol = collection(db, 'artifacts', appId, 'users', state.user.uid, 'books');
+        state.unsubscribeBooks = onSnapshot(
+          booksCol,
+          (snapshot) => {
+            const cloudBooks = [];
+            snapshot.forEach(docSnap => {
+              cloudBooks.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            cloudBooks.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            state.books = cloudBooks;
+            saveLocalLibraryCache();
+            renderBooksGrid();
+          },
+          (error) => {
+            console.warn('Firestore books snapshot error:', error);
+            els.librarySyncBadge.textContent = 'Local Shelf';
+          }
+        );
+      } else {
+        els.librarySyncBadge.textContent = 'Local Shelf';
+      }
+    }
+
+    async function upsertBookMetadata(bookMeta) {
+      const idx = state.books.findIndex(b => b.id === bookMeta.id);
+      if (idx > -1) {
+        state.books[idx] = { ...state.books[idx], ...bookMeta };
+      } else {
+        state.books.unshift(bookMeta);
+      }
+      saveLocalLibraryCache();
+      renderBooksGrid();
+
+      if (firebaseAvailable && db && state.user && !state.user.isLocalGuest) {
+        try {
+          const bookRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'books', bookMeta.id);
+          await setDoc(bookRef, bookMeta, { merge: true });
+        } catch (err) {
+          console.warn('Error saving book metadata to Firestore:', err);
+        }
+      }
+    }
+
+    async function removeBookFromLibrary(bookId) {
+      state.books = state.books.filter(b => b.id !== bookId);
+      saveLocalLibraryCache();
+      renderBooksGrid();
+
+      try {
+        await deletePdfBinary(`${state.user.uid}_${bookId}`);
+      } catch {}
+
+      if (firebaseAvailable && db && state.user && !state.user.isLocalGuest) {
+        try {
+          const bookRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'books', bookId);
+          await deleteDoc(bookRef);
+        } catch (err) {
+          console.warn('Error deleting book from Firestore:', err);
+        }
+      }
+      showToast('E-book removed from library');
+    }
+
+    // ==================== HOME PAGE UPLOAD & COVER GENERATOR ====================
+    els.homeDropZone.addEventListener('click', () => els.homeFileInput.click());
+
+    els.homeFileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length) handleUploadedFiles(files);
+      els.homeFileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      els.homeDropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        els.homeDropZone.classList.add('border-amber-600', 'bg-current/5');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+      els.homeDropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        els.homeDropZone.classList.remove('border-amber-600', 'bg-current/5');
+      });
+    });
+
+    els.homeDropZone.addEventListener('drop', (e) => {
+      const files = Array.from(e.dataTransfer.files || []).filter(
+        f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+      );
+      if (files.length) {
+        handleUploadedFiles(files);
+      } else {
+        showToast('Please drop valid PDF files');
+      }
+    });
+
+    async function generateCoverThumbnail(pdfDoc) {
+      try {
+        const page = await pdfDoc.getPage(1);
+        const viewport = page.getViewport({ scale: 0.45 });
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = Math.floor(viewport.width);
+        tempCanvas.height = Math.floor(viewport.height);
+        const ctx = tempCanvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        return tempCanvas.toDataURL('image/jpeg', 0.72);
+      } catch {
+        return '';
+      }
+    }
+
+    async function handleUploadedFiles(files) {
+      showLoader(`Adding ${files.length} e-book${files.length > 1 ? 's' : ''}...`);
+      try {
+        for (const file of files) {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+          const totalPages = pdfDoc.numPages;
+          const coverDataUrl = await generateCoverThumbnail(pdfDoc);
+          const bookId = 'book_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+          // Store PDF binary locally in IndexedDB so it persists offline/reloads
+          await savePdfBinary(`${state.user.uid}_${bookId}`, arrayBuffer);
+
+          const bookMeta = {
+            id: bookId,
+            title: file.name.replace(/\.pdf$/i, ''),
+            fileName: file.name,
+            totalPages,
+            currentPage: 1,
+            bookmarks: [],
+            coverDataUrl,
+            updatedAt: Date.now()
+          };
+
+          await upsertBookMetadata(bookMeta);
+        }
+        showToast(`Added ${files.length} e-book${files.length > 1 ? 's' : ''} to library`);
+      } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Failed to process one or more PDFs');
+      } finally {
+        hideLoader();
+      }
+    }
+
+    // ==================== RENDER HOME LIBRARY CARDS ====================
+    function renderBooksGrid() {
+      els.booksGrid.innerHTML = '';
+      const books = state.books;
+
+      // Update summary stats
+      els.statTotalBooks.textContent = books.length;
+      if (books.length === 0) {
+        els.emptyLibraryState.classList.remove('hidden');
+        els.statAvgProgress.textContent = '0%';
+        els.statCompletedBooks.textContent = '0';
+        return;
+      }
+
+      els.emptyLibraryState.classList.add('hidden');
+
+      let totalPct = 0;
+      let completedCount = 0;
+
+      books.forEach(book => {
+        const total = Math.max(1, book.totalPages || 1);
+        const current = Math.min(Math.max(1, book.currentPage || 1), total);
+        const pct = total > 1 ? Math.round(((current - 1) / (total - 1)) * 100) : 100;
+        totalPct += pct;
+        if (pct >= 100) completedCount++;
+
+        const card = document.createElement('div');
+        card.className = 'theme-card group rounded-3xl border border-current/10 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col justify-between';
+
+        // Cover preview area
+        const coverWrapper = document.createElement('div');
+        coverWrapper.className = 'relative h-48 bg-current/5 overflow-hidden flex items-center justify-center cursor-pointer border-b border-current/10';
+        coverWrapper.addEventListener('click', () => openBookInReader(book.id));
+
+        if (book.coverDataUrl) {
+          const img = document.createElement('img');
+          img.src = book.coverDataUrl;
+          img.alt = book.title;
+          img.className = 'h-full w-auto object-contain shadow-md group-hover:scale-105 transition-transform duration-300';
+          coverWrapper.appendChild(img);
+        } else {
+          coverWrapper.innerHTML = `
+            <div class="flex flex-col items-center gap-2 opacity-50">
+              <i data-lucide="book" class="w-10 h-10"></i>
+              <span class="text-xs font-medium">PDF E-Book</span>
+            </div>
+          `;
+        }
+
+        // Progress Badge Pill
+        const badge = document.createElement('div');
+        badge.className = 'absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm backdrop-blur-md ' +
+          (pct >= 100 ? 'bg-emerald-600 text-white' : 'bg-black/75 text-white');
+        badge.textContent = pct >= 100 ? 'Finished' : `${pct}%`;
+        coverWrapper.appendChild(badge);
+
+        // Card Body
+        const body = document.createElement('div');
+        body.className = 'p-4 flex-1 flex flex-col justify-between gap-4';
+
+        const info = document.createElement('div');
+        info.className = 'space-y-1.5';
+        info.innerHTML = `
+          <h4 class="font-serif-book font-semibold text-sm sm:text-base line-clamp-2 leading-snug" title="${book.title}">
+            ${book.title}
+          </h4>
+          <p class="text-xs opacity-65">
+            Page ${current} of ${total}
+          </p>
+        `;
+
+        // Progress Bar + Action Buttons
+        const footer = document.createElement('div');
+        footer.className = 'space-y-3';
+
+        const barTrack = document.createElement('div');
+        barTrack.className = 'w-full h-1.5 rounded-full bg-current/15 overflow-hidden';
+        const barFill = document.createElement('div');
+        barFill.className = 'h-full theme-accent-bg rounded-full transition-all duration-300';
+        barFill.style.width = `${pct}%`;
+        barTrack.appendChild(barFill);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center gap-2';
+
+        const readBtn = document.createElement('button');
+        readBtn.className = 'flex-1 py-2 px-3 rounded-xl theme-accent-bg text-xs font-semibold shadow-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5';
+        readBtn.innerHTML = `<i data-lucide="book-open" class="w-3.5 h-3.5"></i><span>${current > 1 ? 'Continue' : 'Read'}</span>`;
+        readBtn.addEventListener('click', () => openBookInReader(book.id));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.title = 'Remove E-Book';
+        deleteBtn.className = 'p-2 rounded-xl bg-current/5 hover:bg-red-500/15 hover:text-red-500 transition-colors';
+        deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
+        deleteBtn.addEventListener('click', () => removeBookFromLibrary(book.id));
+
+        actions.appendChild(readBtn);
+        actions.appendChild(deleteBtn);
+
+        footer.appendChild(barTrack);
+        footer.appendChild(actions);
+
+        body.appendChild(info);
+        body.appendChild(footer);
+
+        card.appendChild(coverWrapper);
+        card.appendChild(body);
+        els.booksGrid.appendChild(card);
+      });
+
+      els.statAvgProgress.textContent = `${Math.round(totalPct / books.length)}%`;
+      els.statCompletedBooks.textContent = completedCount;
+      lucide.createIcons();
+    }
+
+    // ==================== OPEN BOOK IN SINGLE-PAGE READER ====================
+    async function openBookInReader(bookId) {
+      const bookMeta = state.books.find(b => b.id === bookId);
+      if (!bookMeta) return;
+
+      showLoader('Opening e-book...');
+      try {
+        const binary = await getPdfBinary(`${state.user.uid}_${bookId}`);
+        if (!binary) {
+          hideLoader();
+          showToast('PDF file not found on this device. Please re-upload it.');
+          return;
+        }
+
+        const loadingTask = pdfjsLib.getDocument({ data: binary.slice(0) });
+        state.pdfDoc = await loadingTask.promise;
+        state.activeBookId = bookId;
+        state.totalPages = state.pdfDoc.numPages;
+        state.currentPage = Math.min(Math.max(1, bookMeta.currentPage || 1), state.totalPages);
+        state.bookmarks = Array.isArray(bookMeta.bookmarks) ? [...bookMeta.bookmarks] : [];
+
+        els.bookTitle.textContent = bookMeta.title;
+        els.totalPages.textContent = state.totalPages;
+        els.pageInput.max = state.totalPages;
+
+        renderBookmarksList();
+        await buildTableOfContents();
+
+        switchView('reader');
+        state.fitMode = 'width';
+        queueRenderPage(state.currentPage);
+      } catch (err) {
+        console.error('Error opening e-book:', err);
+        showToast('Could not open PDF e-book');
+      } finally {
+        hideLoader();
+      }
+    }
+
+    // Return from Reader back to Home Page Library
+    els.backHomeBtn.addEventListener('click', async () => {
+      if (state.zenMode) toggleZenMode(false);
+      await persistCurrentBookProgress();
+      state.pdfDoc = null;
+      state.activeBookId = null;
+      switchView('home');
+    });
+
+    async function persistCurrentBookProgress() {
+      if (!state.activeBookId) return;
+      await upsertBookMetadata({
+        id: state.activeBookId,
+        currentPage: state.currentPage,
+        totalPages: state.totalPages,
+        bookmarks: state.bookmarks,
+        updatedAt: Date.now()
+      });
+    }
+
+    // ==================== TABLE OF CONTENTS (PDF OUTLINE) ====================
+    async function buildTableOfContents() {
+      els.tocList.innerHTML = '';
+      try {
+        const outline = await state.pdfDoc.getOutline();
+        if (!outline || outline.length === 0) {
+          els.tocList.innerHTML = `
+            <div class="py-10 px-4 text-center opacity-50 text-xs space-y-1">
+              <p class="font-medium">No Table of Contents</p>
+              <p>This PDF does not contain an embedded outline.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const renderOutlineItems = (items, depth = 0) => {
+          items.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'w-full text-left py-2 px-2.5 rounded-xl hover:bg-current/10 transition-colors flex items-center justify-between gap-2 text-xs';
+            btn.style.paddingLeft = `${10 + depth * 14}px`;
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'truncate';
+            titleSpan.textContent = item.title || 'Untitled Section';
+            btn.appendChild(titleSpan);
+
+            btn.addEventListener('click', async () => {
+              try {
+                let dest = item.dest;
+                if (typeof dest === 'string') {
+                  dest = await state.pdfDoc.getDestination(dest);
+                }
+                if (Array.isArray(dest) && dest[0]) {
+                  const pageIndex = await state.pdfDoc.getPageIndex(dest[0]);
+                  goToPage(pageIndex + 1);
+                  if (window.innerWidth < 768) toggleSidebar(false);
+                }
+              } catch (e) {
+                console.warn('Failed to resolve TOC destination:', e);
+              }
+            });
+
+            els.tocList.appendChild(btn);
+
+            if (item.items && item.items.length > 0) {
+              renderOutlineItems(item.items, depth + 1);
+            }
+          });
+        };
+
+        renderOutlineItems(outline);
+      } catch (err) {
+        console.warn('Outline extraction failed:', err);
+      }
+    }
+
+    // ==================== SINGLE-PAGE HIGH-DPI RENDERING ====================
+    function queueRenderPage(pageNum) {
+      if (state.isRendering) {
+        state.pendingPage = pageNum;
+      } else {
+        renderPage(pageNum);
+      }
+    }
+
+    async function renderPage(pageNum) {
+      if (!state.pdfDoc) return;
+      state.isRendering = true;
+
+      try {
+        const page = await state.pdfDoc.getPage(pageNum);
+        const unscaledViewport = page.getViewport({ scale: 1 });
+
+        const padding = window.innerWidth < 640 ? 32 : 64;
+        const availWidth = Math.max(200, els.viewport.clientWidth - padding);
+        const availHeight = Math.max(200, els.viewport.clientHeight - padding);
+
+        if (state.fitMode === 'width') {
+          state.scale = availWidth / unscaledViewport.width;
+        } else if (state.fitMode === 'page') {
+          const scaleW = availWidth / unscaledViewport.width;
+          const scaleH = availHeight / unscaledViewport.height;
+          state.scale = Math.min(scaleW, scaleH);
+        }
+
+        state.scale = Math.max(0.3, Math.min(state.scale, 4.0));
+
+        const outputScale = window.devicePixelRatio || 1;
+        const viewport = page.getViewport({ scale: state.scale });
+
+        const cssWidth = Math.floor(viewport.width);
+        const cssHeight = Math.floor(viewport.height);
+
+        els.pageWrapper.style.width = `${cssWidth}px`;
+        els.pageWrapper.style.height = `${cssHeight}px`;
+
+        els.canvas.width = Math.floor(viewport.width * outputScale);
+        els.canvas.height = Math.floor(viewport.height * outputScale);
+        els.canvas.style.width = `${cssWidth}px`;
+        els.canvas.style.height = `${cssHeight}px`;
+
+        applyColors(state.colors, false);
+
+        const ctx = els.canvas.getContext('2d');
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+
+        if (state.renderTask) {
+          try { state.renderTask.cancel(); } catch {}
+        }
+
+        state.renderTask = page.render({
+          canvasContext: ctx,
+          transform: transform,
+          viewport: viewport
+        });
+
+        await state.renderTask.promise;
+        state.renderTask = null;
+
+        els.viewport.scrollTop = 0;
+
+        updateUIState();
+        persistCurrentBookProgress();
+      } catch (err) {
+        if (err && err.name !== 'RenderingCancelledException') {
+          console.error('Error rendering page:', err);
+        }
+      } finally {
+        state.isRendering = false;
+        if (state.pendingPage !== null) {
+          const next = state.pendingPage;
+          state.pendingPage = null;
+          renderPage(next);
+        }
+      }
+    }
+
+    function updateUIState() {
+      els.pageInput.value = state.currentPage;
+      els.prevBtn.disabled = state.currentPage <= 1;
+      els.nextBtn.disabled = state.currentPage >= state.totalPages;
+      els.zoomLevel.textContent = `${Math.round(state.scale * 100)}%`;
+
+      const percent = state.totalPages > 1
+        ? Math.round(((state.currentPage - 1) / (state.totalPages - 1)) * 100)
+        : 100;
+      els.progressFill.style.width = `${percent}%`;
+      els.progressPercent.textContent = `${percent}%`;
+
+      updateBookmarkButtonUI();
+    }
+
+    // ==================== NAVIGATION & ZOOM CONTROLS ====================
+    function goToPage(pageNum) {
+      if (!state.pdfDoc) return;
+      const target = Math.max(1, Math.min(pageNum, state.totalPages));
+      state.currentPage = target;
+      updateUIState();
+      queueRenderPage(target);
+    }
+
+    els.prevBtn.addEventListener('click', () => goToPage(state.currentPage - 1));
+    els.nextBtn.addEventListener('click', () => goToPage(state.currentPage + 1));
+
+    els.pageInput.addEventListener('change', () => {
+      const val = parseInt(els.pageInput.value, 10);
+      if (!isNaN(val)) {
+        goToPage(val);
+      } else {
+        els.pageInput.value = state.currentPage;
+      }
+    });
+
+    els.progressTrack.addEventListener('click', (e) => {
+      if (!state.pdfDoc) return;
+      const rect = els.progressTrack.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const targetPage = Math.round(ratio * (state.totalPages - 1)) + 1;
+      goToPage(targetPage);
+    });
+
+    function setZoom(newScale) {
+      state.fitMode = 'custom';
+      state.scale = Math.max(0.3, Math.min(newScale, 4.0));
+      queueRenderPage(state.currentPage);
+    }
+
+    els.zoomInBtn.addEventListener('click', () => setZoom(state.scale + 0.2));
+    els.zoomOutBtn.addEventListener('click', () => setZoom(state.scale - 0.2));
+    els.mobileZoomIn.addEventListener('click', () => setZoom(state.scale + 0.2));
+    els.mobileZoomOut.addEventListener('click', () => setZoom(state.scale - 0.2));
+
+    els.fitWidthBtn.addEventListener('click', () => {
+      state.fitMode = 'width';
+      queueRenderPage(state.currentPage);
+    });
+    els.mobileFitWidth.addEventListener('click', () => {
+      state.fitMode = 'width';
+      queueRenderPage(state.currentPage);
+    });
+
+    els.fitPageBtn.addEventListener('click', () => {
+      state.fitMode = 'page';
+      queueRenderPage(state.currentPage);
+    });
+
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (state.pdfDoc && (state.fitMode === 'width' || state.fitMode === 'page')) {
+          queueRenderPage(state.currentPage);
+        }
+      }, 180);
+    });
+
+    // ==================== SIDEBAR & BOOKMARKS ====================
+    function toggleSidebar(forceState) {
+      state.sidebarOpen = typeof forceState === 'boolean' ? forceState : !state.sidebarOpen;
+      if (state.sidebarOpen) {
+        els.sidebar.classList.remove('hidden');
+      } else {
+        els.sidebar.classList.add('hidden');
+      }
+      if (state.pdfDoc && (state.fitMode === 'width' || state.fitMode === 'page')) {
+        setTimeout(() => queueRenderPage(state.currentPage), 50);
+      }
+    }
+
+    els.toggleSidebarBtn.addEventListener('click', () => toggleSidebar());
+
+    els.tabToc.addEventListener('click', () => {
+      els.tabToc.classList.add('theme-accent-bg');
+      els.tabToc.classList.remove('hover:bg-current/10');
+      els.tabBookmarks.classList.remove('theme-accent-bg');
+      els.tabBookmarks.classList.add('hover:bg-current/10');
+      els.panelToc.classList.remove('hidden');
+      els.panelBookmarks.classList.add('hidden');
+    });
+
+    els.tabBookmarks.addEventListener('click', () => {
+      els.tabBookmarks.classList.add('theme-accent-bg');
+      els.tabBookmarks.classList.remove('hover:bg-current/10');
+      els.tabToc.classList.remove('theme-accent-bg');
+      els.tabToc.classList.add('hover:bg-current/10');
+      els.panelBookmarks.classList.remove('hidden');
+      els.panelToc.classList.add('hidden');
+    });
+
+    function toggleBookmark() {
+      if (!state.pdfDoc) return;
+      const idx = state.bookmarks.indexOf(state.currentPage);
+      if (idx > -1) {
+        state.bookmarks.splice(idx, 1);
+        showToast(`Removed bookmark on page ${state.currentPage}`);
+      } else {
+        state.bookmarks.push(state.currentPage);
+        state.bookmarks.sort((a, b) => a - b);
+        showToast(`Bookmarked page ${state.currentPage}`);
+      }
+      persistCurrentBookProgress();
+      updateBookmarkButtonUI();
+      renderBookmarksList();
+    }
+
+    els.bookmarkBtn.addEventListener('click', toggleBookmark);
+
+    function updateBookmarkButtonUI() {
+      const isBookmarked = state.bookmarks.includes(state.currentPage);
+      if (isBookmarked) {
+        els.bookmarkBtn.classList.add('theme-accent-text');
+        els.bookmarkIcon.setAttribute('fill', 'currentColor');
+      } else {
+        els.bookmarkBtn.classList.remove('theme-accent-text');
+        els.bookmarkIcon.setAttribute('fill', 'none');
+      }
+    }
+
+    function renderBookmarksList() {
+      els.bookmarkCount.textContent = state.bookmarks.length;
+      els.bookmarksList.innerHTML = '';
+
+      if (state.bookmarks.length === 0) {
+        els.bookmarksList.innerHTML = `
+          <div class="py-10 px-4 text-center opacity-50 text-xs space-y-1">
+            <p class="font-medium">No Bookmarks Yet</p>
+            <p>Click the bookmark icon in the toolbar to save a page.</p>
+          </div>
+        `;
+        return;
+      }
+
+      state.bookmarks.forEach(pageNum => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-current/5 hover:bg-current/10 transition-colors';
+
+        const jumpBtn = document.createElement('button');
+        jumpBtn.className = 'flex-1 text-left flex items-center gap-2 text-xs font-medium';
+        jumpBtn.innerHTML = `<i data-lucide="bookmark" class="w-3.5 h-3.5 theme-accent-text"></i><span>Page ${pageNum}</span>`;
+        jumpBtn.addEventListener('click', () => {
+          goToPage(pageNum);
+          if (window.innerWidth < 768) toggleSidebar(false);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.title = 'Delete Bookmark';
+        delBtn.className = 'p-1 rounded-lg opacity-50 hover:opacity-100 hover:bg-current/10 transition-all';
+        delBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>`;
+        delBtn.addEventListener('click', () => {
+          state.bookmarks = state.bookmarks.filter(p => p !== pageNum);
+          persistCurrentBookProgress();
+          updateBookmarkButtonUI();
+          renderBookmarksList();
+        });
+
+        row.appendChild(jumpBtn);
+        row.appendChild(delBtn);
+        els.bookmarksList.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    // ==================== DISTRACTION-FREE & FULLSCREEN ====================
+    function toggleZenMode(forceState) {
+      state.zenMode = typeof forceState === 'boolean' ? forceState : !state.zenMode;
+      if (state.zenMode) {
+        els.topToolbar.classList.add('hidden');
+        els.bottomToolbar.classList.add('hidden');
+        els.exitZenBtn.classList.remove('hidden');
+        if (state.sidebarOpen) toggleSidebar(false);
+        showToast('Distraction-free mode enabled');
+      } else {
+        els.topToolbar.classList.remove('hidden');
+        els.bottomToolbar.classList.remove('hidden');
+        els.exitZenBtn.classList.add('hidden');
+      }
+      if (state.pdfDoc && (state.fitMode === 'width' || state.fitMode === 'page')) {
+        queueRenderPage(state.currentPage);
+      }
+    }
+
+    els.zenModeBtn.addEventListener('click', () => toggleZenMode(true));
+    els.exitZenBtn.addEventListener('click', () => toggleZenMode(false));
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    els.fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+    // ==================== LOADER & TOAST HELPERS ====================
+    function showLoader(msg = 'Processing...') {
+      els.loaderText.textContent = msg;
+      els.loader.classList.remove('hidden');
+    }
+
+    function hideLoader() {
+      els.loader.classList.add('hidden');
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+      els.toastMessage.textContent = msg;
+      els.toast.classList.remove('opacity-0', 'translate-y-2');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        els.toast.classList.add('opacity-0', 'translate-y-2');
+      }, 2200);
+    }
+
+    // ==================== KEYBOARD & TOUCH GESTURES ====================
+    window.addEventListener('keydown', (e) => {
+      if (!state.pdfDoc) return;
+      if (document.activeElement === els.pageInput) return;
+
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        e.preventDefault();
+        goToPage(state.currentPage + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        goToPage(state.currentPage - 1);
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        setZoom(state.scale + 0.2);
+      } else if (e.key === '-') {
+        e.preventDefault();
+        setZoom(state.scale - 0.2);
+      } else if (e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        toggleZenMode();
+      } else if (e.key === 'Escape' && state.zenMode) {
+        e.preventDefault();
+        toggleZenMode(false);
+      } else if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleBookmark();
+      }
+    });
+
+    els.viewport.addEventListener('touchstart', (e) => {
+      state.touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    els.viewport.addEventListener('touchend', (e) => {
+      state.touchEndX = e.changedTouches[0].screenX;
+      const diff = state.touchStartX - state.touchEndX;
+      const isHorizontallyScrollable = els.viewport.scrollWidth > els.viewport.clientWidth + 10;
+      if (!isHorizontallyScrollable && Math.abs(diff) > 65) {
+        if (diff > 0) goToPage(state.currentPage + 1);
+        else goToPage(state.currentPage - 1);
+      }
+    }, { passive: true });
+  </script>
+</body>
+</html>
