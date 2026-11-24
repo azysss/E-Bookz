@@ -3,1252 +3,2498 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>E-Bookz Cloud Reader</title>
+  <title>E-BOOKZ — Retro Pixel E-Book Reader</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Pixel Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- jsPDF for generating the built-in Welcome Guide PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
     :root {
-      --bg-app: #EFE6D5;
-      --bg-card: #F8F2E7;
-      --text-main: #2B241D;
-      --accent: #B4653E;
-      --paper: #FFFDF8;
+      --bg-primary: #441082;
+      --bg-secondary: #2e085c;
+      --bg-accent: #6722b8;
+      --bubble-bg: #ffffff;
+      --bubble-border: #0a0612;
+      --bubble-text: #111111;
+      --gold-text: #ffe94d;
+      --gold-shadow: #9b59ff;
+      --btn-peach: #ffcb85;
+      --btn-peach-border: #2a183b;
     }
+
+    * {
+      box-sizing: border-box;
+      image-rendering: pixelated;
+    }
+
     body {
-      background-color: var(--bg-app);
-      color: var(--text-main);
-      transition: background-color 0.25s ease, color 0.25s ease;
-    }
-    .card-surface {
-      background-color: var(--bg-card);
-      transition: background-color 0.25s ease;
-    }
-    .accent-bg {
-      background-color: var(--accent);
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-primary);
+      font-family: 'Silkscreen', monospace;
       color: #ffffff;
+      overflow-x: hidden;
+      transition: background-color 0.35s ease;
     }
-    .accent-text {
-      color: var(--accent);
+
+    .font-arcade {
+      font-family: 'Press Start 2P', monospace;
     }
-    .pdf-page-shell {
-      background-color: var(--paper);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+
+    .font-pixel {
+      font-family: 'Silkscreen', monospace;
+    }
+
+    .font-vt {
+      font-family: 'VT323', monospace;
+    }
+
+    /* Glowing yellow arcade text from Mockup 1 */
+    .arcade-subtitle {
+      font-family: 'Press Start 2P', monospace;
+      color: #fff05a;
+      text-shadow:
+        0 0 8px rgba(255, 238, 80, 0.85),
+        0 0 18px rgba(255, 190, 40, 0.55),
+        3px 3px 0px #2b0954;
+      letter-spacing: 3px;
+    }
+
+    /* Pixel-stepped Speech Bubble matching Mockup 3 */
+    .pixel-bubble {
       position: relative;
-      overflow: hidden;
+      background: var(--bubble-bg);
+      color: var(--bubble-text);
+      border: 6px solid var(--bubble-border);
+      box-shadow:
+        -6px 0 0 0 var(--bubble-bg),
+        6px 0 0 0 var(--bubble-bg),
+        0 -6px 0 0 var(--bubble-bg),
+        0 6px 0 0 var(--bubble-bg),
+        -10px 0 0 0 var(--bubble-border),
+        10px 0 0 0 var(--bubble-border),
+        0 -10px 0 0 var(--bubble-border),
+        0 10px 0 0 var(--bubble-border),
+        0 14px 0 4px rgba(0, 0, 0, 0.32);
+      border-radius: 14px;
     }
-    .marked-line-overlay {
+
+    /* Speech bubble tails */
+    .tail-top-left::before {
+      content: '';
       position: absolute;
-      left: 0;
-      right: 0;
+      top: -6px;
+      left: -26px;
+      width: 24px;
+      height: 18px;
+      background: var(--bubble-bg);
+      border-top: 6px solid var(--bubble-border);
+      border-left: 6px solid var(--bubble-border);
+      clip-path: polygon(0 0, 100% 0, 100% 100%);
+    }
+
+    .tail-top-right::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      right: -26px;
+      width: 24px;
       height: 22px;
-      background: rgba(250, 204, 21, 0.42);
-      border-top: 2px solid rgba(234, 179, 8, 0.95);
-      border-bottom: 2px solid rgba(234, 179, 8, 0.95);
-      pointer-events: none;
+      background: var(--bubble-bg);
+      border-top: 6px solid var(--bubble-border);
+      border-right: 6px solid var(--bubble-border);
+      clip-path: polygon(0 0, 100% 0, 0 100%);
+    }
+
+    .tail-left-mid::before {
+      content: '';
+      position: absolute;
+      top: 45%;
+      left: -22px;
+      width: 20px;
+      height: 22px;
+      background: var(--bubble-bg);
+      border-left: 6px solid var(--bubble-border);
+      border-bottom: 6px solid var(--bubble-border);
+      clip-path: polygon(100% 0, 0 50%, 100% 100%);
+    }
+
+    /* Classic Windows 95 / RPG Bevel Dialog from Mockup 2 */
+    .win95-box {
+      background: #c3c3c3;
+      border-top: 4px solid #ffffff;
+      border-left: 4px solid #ffffff;
+      border-right: 4px solid #262626;
+      border-bottom: 4px solid #262626;
+      box-shadow: 0 0 0 4px #0b0714, 10px 10px 0px rgba(0, 0, 0, 0.45);
+    }
+
+    .win95-titlebar {
+      background: linear-gradient(90deg, #0000a8 0%, #1616e0 50%, #00009c 100%);
+      border-bottom: 4px solid #111111;
+      text-shadow: 2px 2px 0px #000000;
+    }
+
+    .win95-btn {
+      background: #c3c3c3;
+      color: #111111;
+      border-top: 4px solid #ffffff;
+      border-left: 4px solid #ffffff;
+      border-right: 4px solid #3a3a3a;
+      border-bottom: 4px solid #3a3a3a;
+      box-shadow: 0 0 0 3px #0b0714;
+      transition: transform 0.08s steps(2);
+    }
+
+    .win95-btn:active {
+      border-top: 4px solid #3a3a3a;
+      border-left: 4px solid #3a3a3a;
+      border-right: 4px solid #ffffff;
+      border-bottom: 4px solid #ffffff;
+      transform: translate(2px, 2px);
+    }
+
+    /* Health Bar Input (Mockup 2 & 3) */
+    .rpg-bar-input {
+      background: #8a7f96;
+      border: 4px solid #2d2638;
+      box-shadow: inset 4px 4px 0px #5e5569;
+      position: relative;
+    }
+
+    /* Dithered halftone gradient background (Mockup 2) */
+    .dither-bg {
+      background-color: var(--bg-primary);
+      background-image:
+        radial-gradient(rgba(165, 95, 255, 0.35) 2px, transparent 2px),
+        radial-gradient(rgba(165, 95, 255, 0.35) 2px, transparent 2px);
+      background-size: 8px 8px;
+      background-position: 0 0, 4px 4px;
+    }
+
+    /* SIGN IN Button from Mockup 1 */
+    .sign-in-pill {
+      background: #ffd18c;
+      color: #ffffff;
+      border: 5px solid #261438;
+      border-radius: 22px;
+      box-shadow:
+        inset 0 -6px 0 #e69d45,
+        inset 0 5px 0 #ffebb8,
+        0 6px 0 #1b0d29;
+      text-shadow: 2px 2px 0 #b86f24;
+      transition: transform 0.1s steps(2);
+    }
+
+    .sign-in-pill:hover {
+      transform: scale(1.04);
+      background: #ffdc9e;
+    }
+
+    .sign-in-pill:active {
+      transform: translateY(4px);
+    }
+
+    /* Animations */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes bounceSprite {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes spinVinyl {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .animate-float {
+      animation: floatSlow 3.2s steps(4) infinite;
+    }
+
+    .animate-sprite {
+      animation: bounceSprite 0.7s steps(2) infinite;
+    }
+
+    .vinyl-spin {
+      animation: spinVinyl 4s linear infinite;
+    }
+
+    /* PDF Reader Filters */
+    .filter-normal {
+      filter: none;
+    }
+    .filter-sepia {
+      filter: sepia(0.42) brightness(0.95) contrast(1.03);
+    }
+    .filter-dark {
+      filter: invert(0.9) hue-rotate(180deg) contrast(1.05);
+    }
+    .filter-amber {
+      filter: sepia(0.65) saturate(1.4) brightness(0.9) hue-rotate(-10deg);
+    }
+    .filter-contrast {
+      filter: contrast(1.35) brightness(1.02);
+    }
+
+    /* Custom Pixel Scrollbar */
+    ::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1d0738;
+      border-left: 2px solid #000;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #ffcb6b;
+      border: 2px solid #1d0738;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ffe59e;
+    }
+
+    /* Highlight Line Marker inside PDF Page */
+    .pdf-page-wrapper {
+      position: relative;
+      margin: 0 auto 24px auto;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+      border: 4px solid #120624;
+      background: #ffffff;
+      user-select: text;
+    }
+
+    .line-highlight-bar {
+      position: absolute;
+      left: 4%;
+      width: 92%;
+      height: 26px;
+      transform: translateY(-50%);
+      pointer-events: auto;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      z-index: 20;
+    }
+
+    .line-highlight-last {
+      background: rgba(255, 238, 0, 0.45);
+      border-top: 2px dashed #ff3b8d;
+      border-bottom: 3px solid #ff3b8d;
+      box-shadow: 0 0 14px rgba(255, 238, 0, 0.7);
+    }
+
+    .line-highlight-note {
+      background: rgba(72, 255, 168, 0.36);
+      border-bottom: 2px solid #00b862;
+    }
+
+    /* Text layer for selectable text on PDF.js */
+    .textLayer {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      opacity: 0.25;
+      line-height: 1.0;
       z-index: 10;
+    }
+    .textLayer span {
+      color: transparent;
+      position: absolute;
+      white-space: pre;
+      cursor: text;
+      transform-origin: 0% 0%;
+    }
+    .textLayer ::selection {
+      background: rgba(255, 0, 128, 0.6);
     }
   </style>
 </head>
-<body class="min-h-screen antialiased selection:bg-amber-200 selection:text-stone-900">
+<body class="min-h-screen select-none">
 
-  <!-- AUTH / PROFILE GATE -->
-  <div id="authView" class="min-h-screen flex items-center justify-center p-4">
-    <div class="card-surface w-full max-w-md rounded-2xl p-7 shadow-xl border border-black/10 space-y-5">
-      <div class="text-center space-y-1">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl accent-bg mb-1">
-          <i data-lucide="book-open-check" class="w-6 h-6"></i>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight">E-Bookz Cloud Reader</h1>
-        <p class="text-xs opacity-75">Sign in with your email to sync books, reading progress, favourites, ratings, and themes across devices.</p>
-      </div>
-
-      <div id="configWarning" class="hidden p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs space-y-1">
-        <div class="font-semibold flex items-center gap-1.5">
-          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0"></i>
-          Supabase configuration required
-        </div>
-        <p class="opacity-85">Set <code class="font-mono">SUPABASE_URL</code> and <code class="font-mono">SUPABASE_ANON_KEY</code> near the bottom of <code class="font-mono">index.html</code> to enable cloud sync.</p>
-      </div>
-
-      <form id="authForm" class="space-y-4">
-        <div class="flex flex-col items-center gap-2">
-          <label class="relative cursor-pointer group">
-            <img id="authAvatarPreview" src="" alt="Avatar" class="hidden w-16 h-16 rounded-full object-cover border-2 border-black/15" />
-            <div id="authAvatarPlaceholder" class="w-16 h-16 rounded-full bg-black/10 flex items-center justify-center">
-              <i data-lucide="camera" class="w-6 h-6 opacity-70"></i>
-            </div>
-            <input id="authAvatarInput" type="file" accept="image/*" class="hidden" />
-          </label>
-          <span class="text-[11px] opacity-70">Optional profile photo (saved locally)</span>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold mb-1">Display Name</label>
-          <input id="authNameInput" type="text" required placeholder="e.g. Adam"
-            class="w-full px-3.5 py-2.5 rounded-xl bg-black/5 border border-black/15 text-sm focus:outline-none" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold mb-1">Email (Sync Key)</label>
-          <input id="authEmailInput" type="email" required placeholder="you@example.com"
-            class="w-full px-3.5 py-2.5 rounded-xl bg-black/5 border border-black/15 text-sm focus:outline-none" />
-        </div>
-
-        <button type="submit" class="w-full py-2.5 rounded-xl accent-bg font-semibold text-sm shadow hover:opacity-95 transition">
-          Continue to Library
-        </button>
-      </form>
+  <!-- TOAST NOTIFICATION BANNER -->
+  <div id="toast-box" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] hidden pointer-events-none">
+    <div class="bg-[#18072e] border-4 border-[#ffe94d] text-[#ffe94d] px-5 py-3 shadow-[6px_6px_0_#000] font-pixel text-xs sm:text-sm flex items-center gap-3">
+      <span id="toast-icon">★</span>
+      <span id="toast-msg">Notification</span>
     </div>
   </div>
 
-  <!-- LIBRARY VIEW -->
-  <div id="libraryView" class="hidden min-h-screen flex flex-col">
-    <header class="sticky top-0 z-30 card-surface border-b border-black/10 px-4 py-3">
-      <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <button id="openProfileBtn" title="Switch User / Profile" class="flex items-center gap-2.5 text-left">
-            <img id="headerAvatarImg" src="" alt="User" class="hidden w-9 h-9 rounded-full object-cover border border-black/15" />
-            <div id="headerAvatarFallback" class="w-9 h-9 rounded-full accent-bg flex items-center justify-center font-bold text-sm">A</div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 class="font-bold text-base leading-tight">E-Bookz Library</h2>
-                <span id="headerUserName" class="text-xs px-2 py-0.5 rounded-full bg-black/10 font-medium">User</span>
-              </div>
-              <div class="flex items-center gap-1.5 text-[11px] opacity-75">
-                <span id="syncStatusDot" class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
-                <span id="syncStatusText">Ready</span>
-              </div>
-            </div>
-          </button>
-        </div>
+  <!-- ===================================================================== -->
+  <!-- SCREEN 1: LANDING SCREEN (Matching Mockup 1)                          -->
+  <!-- ===================================================================== -->
+  <section id="screen-landing" class="relative w-full min-h-screen flex flex-col justify-between overflow-hidden">
+    <!-- Pixel Clouds Layer -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <!-- Left Pink/Lavender Pixel Cloud -->
+      <svg class="absolute top-14 -left-6 w-64 sm:w-80 animate-float" viewBox="0 0 160 64" fill="none">
+        <rect x="24" y="16" width="24" height="12" fill="#f7b2e6"/>
+        <rect x="16" y="28" width="48" height="12" fill="#f7b2e6"/>
+        <rect x="64" y="24" width="24" height="16" fill="#e594d8"/>
+        <rect x="0" y="40" width="120" height="14" fill="#d982cf"/>
+        <rect x="8" y="48" width="128" height="10" fill="#a85eb5"/>
+        <rect x="30" y="20" width="12" height="6" fill="#ffffff"/>
+        <rect x="70" y="28" width="12" height="6" fill="#ffffff"/>
+      </svg>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="syncNowBtn" class="px-3 py-1.5 rounded-xl bg-black/10 hover:bg-black/15 text-xs font-semibold flex items-center gap-1.5">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync
-          </button>
-          <button id="openMusicBtn" class="px-3 py-1.5 rounded-xl bg-black/10 hover:bg-black/15 text-xs font-semibold flex items-center gap-1.5">
-            <i data-lucide="list-music" class="w-3.5 h-3.5"></i> Playlist
-          </button>
-          <button id="openColorsBtn" class="px-3 py-1.5 rounded-xl bg-black/10 hover:bg-black/15 text-xs font-semibold flex items-center gap-1.5">
-            <i data-lucide="palette" class="w-3.5 h-3.5"></i> Edit Colours
-          </button>
-          <label class="px-3.5 py-1.5 rounded-xl accent-bg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow hover:opacity-95">
-            <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload PDF
-            <input id="pdfUploadInput" type="file" accept="application/pdf,.pdf" multiple class="hidden" />
-          </label>
-          <button id="signOutBtn" title="Sign Out" class="p-2 rounded-xl bg-black/10 hover:bg-black/15">
-            <i data-lucide="log-out" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main class="max-w-6xl w-full mx-auto px-4 py-6 space-y-6 flex-1">
-      <!-- STATS -->
-      <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div class="card-surface rounded-2xl p-4 border border-black/10">
-          <div class="text-[11px] font-semibold uppercase tracking-wider opacity-65">Total E-Books</div>
-          <div id="statTotalBooks" class="text-2xl font-bold mt-1">0</div>
-        </div>
-        <div class="card-surface rounded-2xl p-4 border border-black/10">
-          <div class="text-[11px] font-semibold uppercase tracking-wider opacity-65">Overall Progress</div>
-          <div id="statOverallProgress" class="text-2xl font-bold mt-1">0%</div>
-        </div>
-        <div class="card-surface rounded-2xl p-4 border border-black/10">
-          <div class="text-[11px] font-semibold uppercase tracking-wider opacity-65">Completed</div>
-          <div id="statCompleted" class="text-2xl font-bold mt-1">0</div>
-        </div>
-        <div class="card-surface rounded-2xl p-4 border border-black/10">
-          <div class="text-[11px] font-semibold uppercase tracking-wider opacity-65">Favourites</div>
-          <div id="statFavorites" class="text-2xl font-bold mt-1">0</div>
-        </div>
-      </section>
-
-      <!-- DROPZONE -->
-      <div id="dropZone" class="card-surface rounded-2xl border-2 border-dashed border-black/20 p-6 text-center space-y-1.5 hover:border-black/40 transition">
-        <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/10 mx-auto">
-          <i data-lucide="file-up" class="w-5 h-5 accent-text"></i>
-        </div>
-        <div class="text-sm font-semibold">Drag &amp; drop PDF e-books here, or click Upload PDF</div>
-        <p class="text-xs opacity-70">Accessible on any device when you log in with the same email.</p>
-      </div>
-
-      <!-- FILTER & SORT -->
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-1.5">
-          <button data-filter="all" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold accent-bg">All</button>
-          <button data-filter="reading" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/10">Reading</button>
-          <button data-filter="finished" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/10">Finished</button>
-          <button data-filter="favorites" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/10">Favourites</button>
-        </div>
-
-        <div class="flex items-center gap-2 text-xs">
-          <span class="opacity-70">Sort:</span>
-          <select id="sortSelect" class="card-surface border border-black/15 rounded-xl px-3 py-1.5 font-semibold focus:outline-none">
-            <option value="recent">Recently Read</option>
-            <option value="title">Title (A–Z)</option>
-            <option value="progress">Progress (High–Low)</option>
-            <option value="rating">Rating (High–Low)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- BOOK GRID -->
-      <div id="booksGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-      <p id="emptyBooksMsg" class="hidden text-center text-sm opacity-65 py-10">No matching e-books found.</p>
-    </main>
-  </div>
-
-  <!-- CONTINUOUS SCROLL READER VIEW -->
-  <div id="readerView" class="hidden min-h-screen flex flex-col">
-    <header class="sticky top-0 z-30 card-surface border-b border-black/10 px-4 py-2.5">
-      <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <button id="backToLibraryBtn" class="px-3 py-1.5 rounded-xl bg-black/10 hover:bg-black/15 text-xs font-semibold flex items-center gap-1 shrink-0">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i> Library
-          </button>
-          <h2 id="readerBookTitle" class="font-bold text-sm truncate">Book Title</h2>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-1.5 text-xs">
-          <button id="zoomOutBtn" title="Zoom Out" class="p-2 rounded-xl bg-black/10 hover:bg-black/15">
-            <i data-lucide="zoom-out" class="w-4 h-4"></i>
-          </button>
-          <span id="zoomLabel" class="px-2 font-semibold">115%</span>
-          <button id="zoomInBtn" title="Zoom In" class="p-2 rounded-xl bg-black/10 hover:bg-black/15">
-            <i data-lucide="zoom-in" class="w-4 h-4"></i>
-          </button>
-
-          <button id="toggleMarkLineBtn" class="px-3 py-1.5 rounded-xl bg-black/10 hover:bg-black/15 font-semibold flex items-center gap-1">
-            <i data-lucide="highlighter" class="w-3.5 h-3.5"></i> Mark Line
-          </button>
-          <button id="jumpMarkedLineBtn" class="hidden px-3 py-1.5 rounded-xl bg-amber-400/30 hover:bg-amber-400/45 font-semibold flex items-center gap-1">
-            <i data-lucide="bookmark-check" class="w-3.5 h-3.5"></i> Jump to Mark
-          </button>
-          <button id="clearMarkedLineBtn" class="hidden px-2.5 py-1.5 rounded-xl bg-black/10 hover:bg-black/15 font-semibold">
-            Clear Mark
-          </button>
-          <button id="readerMusicBtn" title="Song Playlist" class="p-2 rounded-xl bg-black/10 hover:bg-black/15">
-            <i data-lucide="list-music" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <div id="markLineBanner" class="hidden bg-amber-400/25 border-b border-amber-500/40 px-4 py-2 text-center text-xs font-semibold">
-      Mark Line Mode active: click anywhere on a page to save your reading line marker.
+      <!-- Right Pink/Lavender Pixel Cloud -->
+      <svg class="absolute top-10 -right-4 w-64 sm:w-80 animate-float" style="animation-delay: 1.2s;" viewBox="0 0 160 64" fill="none">
+        <rect x="84" y="8" width="24" height="12" fill="#f7b2e6"/>
+        <rect x="60" y="20" width="60" height="12" fill="#f7b2e6"/>
+        <rect x="36" y="32" width="110" height="14" fill="#d982cf"/>
+        <rect x="28" y="42" width="128" height="10" fill="#a85eb5"/>
+        <rect x="88" y="12" width="12" height="6" fill="#ffffff"/>
+        <rect x="64" y="24" width="14" height="6" fill="#ffffff"/>
+      </svg>
     </div>
 
-    <div id="readerScrollContainer" class="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-6 space-y-6"></div>
+    <!-- Top-Center Pixel Hero Header (LET'S READ THE >E-BOOKZ< BY : ADAMZ) -->
+    <div class="relative z-10 flex flex-col items-center text-center pt-10 sm:pt-14 px-3">
+      <h2 class="arcade-subtitle text-sm sm:text-xl md:text-2xl mb-4 sm:mb-6">
+        LET'S READ THE
+      </h2>
 
-    <footer class="sticky bottom-0 z-20 card-surface border-t border-black/10 px-4 py-2.5">
-      <div class="max-w-4xl mx-auto flex items-center justify-between gap-4 text-xs">
-        <span id="pageIndicator" class="font-semibold">Page 1 of 1</span>
-        <div class="flex-1 max-w-xs bg-black/10 rounded-full h-2 overflow-hidden">
-          <div id="readerProgressBar" class="h-full accent-bg transition-all duration-200" style="width: 0%"></div>
-        </div>
-        <span id="readerPercent" class="font-semibold">0%</span>
-      </div>
-    </footer>
-  </div>
+      <!-- Pixel-Matrix Banner ">E-BOOKZ<" -->
+      <div id="pixel-logo-banner" class="w-full max-w-4xl px-2 my-1"></div>
 
-  <!-- SONG PLAYLIST MODAL -->
-  <div id="musicModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="card-surface w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-bold text-lg flex items-center gap-2">
-          <i data-lucide="list-music" class="w-5 h-5 accent-text"></i> Song Playlist
-        </h3>
-        <button id="closeMusicModalBtn" class="p-1 rounded-lg opacity-70 hover:opacity-100">
-          <i data-lucide="x" class="w-5 h-5"></i>
+      <p class="arcade-subtitle text-xs sm:text-base md:text-lg mt-4 sm:mt-6">
+        BY : <span id="landing-author-name">ADAMZ</span>
+      </p>
+    </div>
+
+    <!-- Cityscape + Bus + Characters + SIGN IN Button (Bottom Scene) -->
+    <div class="relative z-10 w-full mt-auto pt-8">
+      <!-- Center Floating SIGN IN Button over the Bus -->
+      <div class="relative z-30 flex justify-center -mb-6 sm:-mb-8">
+        <button id="btn-open-signin" class="sign-in-pill font-arcade text-lg sm:text-2xl md:text-3xl px-8 sm:px-12 py-3 sm:py-4 cursor-pointer tracking-wider">
+          SIGN IN
         </button>
       </div>
 
-      <label class="w-full py-3 px-4 rounded-xl border border-dashed border-black/20 flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer hover:opacity-85">
-        <i data-lucide="plus-circle" class="w-4 h-4 accent-text"></i> Add Songs to Playlist (MP3, WAV, OGG)
-        <input id="musicUploadInput" type="file" accept="audio/*" multiple class="hidden" />
-      </label>
+      <!-- Detailed Pixel Street Scene SVG -->
+      <div class="w-full overflow-hidden">
+        <svg class="w-full h-56 sm:h-72 md:h-80 block" viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice">
+          <!-- Background Neon Buildings -->
+          <!-- Left Shop Building -->
+          <rect x="0" y="105" width="240" height="190" fill="#3a126e"/>
+          <rect x="0" y="105" width="240" height="36" fill="#35c9c9" stroke="#ff66b3" stroke-width="4"/>
+          <rect x="16" y="116" width="130" height="12" fill="#230b47"/>
+          <!-- Striped Awning -->
+          <rect x="150" y="141" width="120" height="24" fill="#ff73c6"/>
+          <rect x="165" y="141" width="15" height="24" fill="#35e0c4"/>
+          <rect x="195" y="141" width="15" height="24" fill="#35e0c4"/>
+          <rect x="225" y="141" width="15" height="24" fill="#35e0c4"/>
+          <rect x="255" y="141" width="15" height="24" fill="#35e0c4"/>
+          <!-- Door & Window -->
+          <rect x="155" y="175" width="60" height="120" fill="#ff73c6" stroke="#240947" stroke-width="4"/>
+          <rect x="168" y="190" width="34" height="45" fill="#240947"/>
 
-      <div class="card-surface rounded-xl p-4 space-y-3 border border-black/10">
-        <div class="flex items-center justify-between gap-2">
-          <span id="musicTrackName" class="text-xs font-semibold truncate">No songs in playlist yet</span>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button id="prevTrackBtn" type="button" title="Previous Song" class="p-1.5 rounded-lg bg-black/10 hover:bg-black/15">
-              <i data-lucide="skip-back" class="w-3.5 h-3.5"></i>
-            </button>
-            <button id="playPauseMusicBtn" type="button" class="px-3 py-1.5 rounded-lg accent-bg text-xs font-semibold flex items-center gap-1">
-              <i id="playPauseIcon" data-lucide="play" class="w-3.5 h-3.5"></i>
-              <span id="playPauseLabel">Play</span>
-            </button>
-            <button id="nextTrackBtn" type="button" title="Next Song" class="p-1.5 rounded-lg bg-black/10 hover:bg-black/15">
-              <i data-lucide="skip-forward" class="w-3.5 h-3.5"></i>
-            </button>
+          <!-- Center Bus Stop Shelter -->
+          <rect x="210" y="195" width="290" height="14" fill="#9c4276"/>
+          <rect x="235" y="209" width="245" height="86" fill="#591f6e"/>
+          <!-- Diagonal glass reflections -->
+          <polygon points="260,209 295,209 255,295 220,295" fill="#7d328c" opacity="0.6"/>
+          <polygon points="340,209 375,209 335,295 300,295" fill="#7d328c" opacity="0.6"/>
+          <!-- Green neon sign on roof -->
+          <rect x="365" y="170" width="105" height="24" fill="#18d99c" stroke="#240947" stroke-width="4"/>
+
+          <!-- Center Back Building -->
+          <rect x="490" y="130" width="250" height="165" fill="#4f1687"/>
+          <rect x="495" y="130" width="240" height="32" fill="#35c9c9" stroke="#ff66b3" stroke-width="4"/>
+          <rect x="515" y="140" width="140" height="10" fill="#230b47"/>
+
+          <!-- Right Pink Cafe / Shop -->
+          <rect x="765" y="170" width="240" height="125" fill="#d94e8f"/>
+          <rect x="880" y="140" width="110" height="28" fill="#ff85a2" stroke="#240947" stroke-width="4"/>
+          <rect x="765" y="205" width="165" height="28" fill="#ff94c8"/>
+          <rect x="775" y="238" width="145" height="55" fill="#471369"/>
+          <!-- Wooden Fence Right -->
+          <rect x="1005" y="205" width="195" height="12" fill="#8f4a38"/>
+          <rect x="1005" y="232" width="195" height="12" fill="#8f4a38"/>
+          <rect x="1005" y="260" width="195" height="12" fill="#8f4a38"/>
+          <rect x="1040" y="195" width="14" height="100" fill="#6e3326"/>
+          <rect x="1150" y="195" width="14" height="100" fill="#6e3326"/>
+
+          <!-- Billboard on Right -->
+          <rect x="1015" y="225" width="12" height="70" fill="#5e3a73"/>
+          <rect x="968" y="172" width="106" height="58" rx="6" fill="#29abe2" stroke="#1b1464" stroke-width="4"/>
+          <!-- Face inside billboard -->
+          <circle cx="1021" cy="201" r="18" fill="#f7b2a8"/>
+          <path d="M1003,195 Q1021,175 1039,195" fill="#9c4276"/>
+          <rect x="968" y="236" width="106" height="16" rx="6" fill="#29abe2" stroke="#1b1464" stroke-width="3"/>
+
+          <!-- Pixel Tree on Left -->
+          <rect x="42" y="195" width="22" height="100" fill="#2e1847"/>
+          <circle cx="52" cy="175" r="46" fill="#0d5c46"/>
+          <circle cx="32" cy="155" r="34" fill="#138a59"/>
+          <circle cx="76" cy="162" r="36" fill="#138a59"/>
+          <circle cx="55" cy="135" r="32" fill="#1ec46e"/>
+          <circle cx="40" cy="145" r="14" fill="#4dff94"/>
+
+          <!-- Glowing Street Lamp -->
+          <path d="M132,295 L132,195 Q132,175 155,175 L175,175 L175,186" stroke="#852b78" stroke-width="7" fill="none"/>
+          <polygon points="163,186 187,186 196,210 154,210" fill="#ffe94d"/>
+          <polygon points="154,210 196,210 208,242 142,242" fill="#ffe94d" opacity="0.25"/>
+
+          <!-- Blue Pixel Bus in Center -->
+          <g transform="translate(405, 195)">
+            <!-- Bus Roof & Body -->
+            <rect x="8" y="0" width="374" height="12" fill="#4ce3ff"/>
+            <rect x="0" y="12" width="390" height="72" rx="6" fill="#148ce0" stroke="#0d2a5c" stroke-width="4"/>
+            <rect x="0" y="64" width="390" height="12" fill="#32c5ff"/>
+            <!-- Bus Windows -->
+            <rect x="16" y="20" width="44" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
+            <rect x="68" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
+            <rect x="128" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
+            <rect x="188" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
+            <rect x="248" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
+            <rect x="308" y="20" width="66" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
+            <!-- Side Mirror -->
+            <rect x="390" y="22" width="12" height="18" fill="#32c5ff"/>
+            <!-- Wheels -->
+            <circle cx="105" cy="84" r="20" fill="#171b36" stroke="#0b0d1c" stroke-width="4"/>
+            <circle cx="105" cy="84" r="9" fill="#46539e"/>
+            <circle cx="295" cy="84" r="20" fill="#171b36" stroke="#0b0d1c" stroke-width="4"/>
+            <circle cx="295" cy="84" r="9" fill="#46539e"/>
+          </g>
+
+          <!-- Pixel Boy Character Standing Left of Bus -->
+          <g class="animate-sprite" transform="translate(335, 222)">
+            <!-- Hair -->
+            <rect x="8" y="0" width="34" height="14" rx="6" fill="#1bc44d"/>
+            <!-- Face -->
+            <rect x="10" y="12" width="30" height="18" fill="#ffbe94"/>
+            <rect x="15" y="17" width="4" height="5" fill="#1d0b36"/>
+            <rect x="29" y="17" width="4" height="5" fill="#1d0b36"/>
+            <!-- Orange Jacket + Blue Vest -->
+            <rect x="4" y="30" width="42" height="24" fill="#ff6619"/>
+            <rect x="12" y="30" width="26" height="24" fill="#2939c7"/>
+            <!-- Pants & Boots -->
+            <rect x="12" y="54" width="11" height="16" fill="#1a1f66"/>
+            <rect x="27" y="54" width="11" height="16" fill="#1a1f66"/>
+            <rect x="10" y="68" width="13" height="6" fill="#ff6619"/>
+            <rect x="27" y="68" width="13" height="6" fill="#ff6619"/>
+          </g>
+
+          <!-- Cute Purple Pixel Ghost/Cat Right of Bus -->
+          <g class="animate-float" transform="translate(838, 244)">
+            <path d="M8,0 H36 V8 H44 V48 H34 V40 H26 V48 H18 V40 H10 V48 H0 V8 H8 Z" fill="#9919cf"/>
+            <rect x="12" y="14" width="6" height="9" fill="#ffffff"/>
+            <rect x="14" y="16" width="3" height="5" fill="#180529"/>
+            <rect x="26" y="14" width="6" height="9" fill="#ffffff"/>
+            <rect x="28" y="16" width="3" height="5" fill="#180529"/>
+          </g>
+
+          <!-- Pixel Grass & Flower Ground Strip -->
+          <rect x="0" y="290" width="1200" height="30" fill="#068c45"/>
+          <rect x="0" y="286" width="1200" height="8" fill="#19c95b"/>
+          <!-- Pixel Flowers -->
+          <g fill="#ff73e6">
+            <rect x="45" y="288" width="6" height="6"/><rect x="140" y="292" width="6" height="6"/>
+            <rect x="250" y="287" width="6" height="6"/><rect x="375" y="291" width="6" height="6"/>
+            <rect x="520" y="288" width="6" height="6"/><rect x="665" y="292" width="6" height="6"/>
+            <rect x="790" y="287" width="6" height="6"/><rect x="940" y="291" width="6" height="6"/>
+            <rect x="1095" y="288" width="6" height="6"/>
+          </g>
+          <g fill="#5ce6ff">
+            <rect x="90" y="293" width="6" height="6"/><rect x="310" y="289" width="6" height="6"/>
+            <rect x="460" y="293" width="6" height="6"/><rect x="605" y="288" width="6" height="6"/>
+            <rect x="735" y="293" width="6" height="6"/><rect x="890" y="289" width="6" height="6"/>
+            <rect x="1030" y="293" width="6" height="6"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 2: SIGN-IN DIALOG SCREEN (Matching Mockup 2)                   -->
+  <!-- ===================================================================== -->
+  <section id="screen-signin" class="hidden dither-bg relative w-full min-h-screen flex flex-col justify-between items-center overflow-hidden">
+    <!-- Top Spacer -->
+    <div class="h-6 sm:h-10"></div>
+
+    <!-- Classic Windows 95 / RPG Dialog Box ("ARE YOU READY ?") -->
+    <div class="relative z-20 w-[92%] max-w-xl mx-auto">
+      <div class="win95-box">
+        <!-- Blue Title Bar -->
+        <div class="win95-titlebar px-4 py-3 text-center">
+          <h2 class="font-arcade text-white text-sm sm:text-xl tracking-wider">
+            ARE YOU READY ?
+          </h2>
+        </div>
+
+        <!-- Form Interior -->
+        <div class="px-6 sm:px-12 py-7 sm:py-9 flex flex-col gap-6 text-center">
+          <!-- USERNAME FIELD -->
+          <div>
+            <label for="input-username" class="block font-arcade text-white text-xs sm:text-base mb-3 drop-shadow-[2px_2px_0_#000]">
+              USERNAME
+            </label>
+            <div class="relative flex items-center max-w-sm mx-auto">
+              <!-- Pixel Heart + Red Fill Accent -->
+              <div class="relative z-10 -mr-4 flex items-center">
+                <svg class="w-12 h-12 drop-shadow-[2px_2px_0_#1a0826]" viewBox="0 0 16 16">
+                  <path d="M2 3h4v1h1v1h2V4h1V3h4v1h1v5h-1v2h-2v2h-2v2H6v-2H4v-2H2V9H1V4h1V3z" fill="#1a0826"/>
+                  <path d="M3 4h3v1h1v1h2V5h1V4h3v4h-1v2h-2v2H9v1H7v-1H6v-2H4V8H3V4z" fill="#ff5c5c"/>
+                  <rect x="4" y="5" width="2" height="2" fill="#ffc2c2"/>
+                </svg>
+              </div>
+              <div class="rpg-bar-input flex-1 h-11 rounded-r-full flex items-center pl-6 pr-4 overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-8 bg-[#f25238] pointer-events-none"></div>
+                <input
+                  id="input-username"
+                  type="text"
+                  maxlength="16"
+                  placeholder="ADAM"
+                  class="relative z-10 w-full bg-transparent text-white font-arcade text-xs sm:text-sm focus:outline-none placeholder-white/60 uppercase"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- PASSWORD FIELD -->
+          <div>
+            <label for="input-password" class="block font-arcade text-white text-xs sm:text-base mb-3 drop-shadow-[2px_2px_0_#000]">
+              PASSWORD
+            </label>
+            <div class="relative flex items-center max-w-sm mx-auto">
+              <!-- Pixel Heart + Red Fill Accent -->
+              <div class="relative z-10 -mr-4 flex items-center">
+                <svg class="w-12 h-12 drop-shadow-[2px_2px_0_#1a0826]" viewBox="0 0 16 16">
+                  <path d="M2 3h4v1h1v1h2V4h1V3h4v1h1v5h-1v2h-2v2h-2v2H6v-2H4v-2H2V9H1V4h1V3z" fill="#1a0826"/>
+                  <path d="M3 4h3v1h1v1h2V5h1V4h3v4h-1v2h-2v2H9v1H7v-1H6v-2H4V8H3V4z" fill="#ff5c5c"/>
+                  <rect x="4" y="5" width="2" height="2" fill="#ffc2c2"/>
+                </svg>
+              </div>
+              <div class="rpg-bar-input flex-1 h-11 rounded-r-full flex items-center pl-6 pr-4 overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-8 bg-[#f25238] pointer-events-none"></div>
+                <input
+                  id="input-password"
+                  type="password"
+                  placeholder="••••••"
+                  class="relative z-10 w-full bg-transparent text-white font-arcade text-xs sm:text-sm focus:outline-none placeholder-white/60"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Yes / No Buttons Attached Under Dialog Box -->
+      <div class="grid grid-cols-2 gap-4 mt-3">
+        <button id="btn-signin-yes" class="win95-btn py-3 sm:py-4 font-pixel text-lg sm:text-2xl font-bold cursor-pointer">
+          Yes
+        </button>
+        <button id="btn-signin-no" class="win95-btn py-3 sm:py-4 font-pixel text-lg sm:text-2xl font-bold cursor-pointer">
+          No
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Sprites: Space Invaders + Two Heroes Standing on Tile Floor -->
+    <div class="relative z-10 w-full mt-auto pt-4">
+      <div class="max-w-5xl mx-auto px-6 flex items-end justify-between -mb-2">
+        <!-- Left Magenta Space Invader -->
+        <svg class="w-16 h-16 sm:w-20 sm:h-20 animate-float" viewBox="0 0 16 14">
+          <path d="M3 1h2v2H3V1zm8 0h2v2h-2V1zM4 3h8v2h2v3h2v3h-2V9h-2v3H9v-2H7v2H4V9H2v2H0V8h2V5h2V3z" fill="#e639f6" stroke="#ffffff" stroke-width="0.6"/>
+          <rect x="5" y="5" width="2" height="2" fill="#39ff14"/>
+          <rect x="9" y="5" width="2" height="2" fill="#39ff14"/>
+        </svg>
+
+        <!-- Center Two Pixel Characters (Spiky Brown Hair + Green Hat) -->
+        <div class="flex items-end gap-2">
+          <!-- Character 1 (Blue Shirt) -->
+          <svg class="w-16 h-24 sm:w-20 sm:h-28" viewBox="0 0 18 26">
+            <path d="M5 1h3l1 2 2-2h3v3h1v4H3V4h2V1z" fill="#d96b14"/>
+            <rect x="4" y="7" width="10" height="7" fill="#ffbe94"/>
+            <rect x="6" y="9" width="2" height="2" fill="#18082b"/>
+            <rect x="10" y="9" width="2" height="2" fill="#18082b"/>
+            <rect x="3" y="14" width="12" height="7" fill="#0d47e8"/>
+            <rect x="1" y="15" width="2" height="5" fill="#ffbe94"/>
+            <rect x="15" y="15" width="2" height="5" fill="#ffbe94"/>
+            <rect x="5" y="21" width="3" height="4" fill="#12184a"/>
+            <rect x="10" y="21" width="3" height="4" fill="#12184a"/>
+          </svg>
+          <!-- Character 2 (Green Hat + Orange Jacket) -->
+          <svg class="w-16 h-24 sm:w-20 sm:h-28" viewBox="0 0 18 26">
+            <rect x="3" y="2" width="12" height="5" rx="2" fill="#19c94e"/>
+            <rect x="4" y="7" width="10" height="7" fill="#ffbe94"/>
+            <rect x="6" y="9" width="2" height="2" fill="#18082b"/>
+            <rect x="10" y="9" width="2" height="2" fill="#18082b"/>
+            <rect x="2" y="14" width="14" height="7" fill="#ff6619"/>
+            <rect x="5" y="14" width="8" height="7" fill="#3246db"/>
+            <rect x="5" y="21" width="3" height="4" fill="#1a1f66"/>
+            <rect x="10" y="21" width="3" height="4" fill="#1a1f66"/>
+          </svg>
+        </div>
+
+        <!-- Right Dark-Purple Space Invader -->
+        <svg class="w-16 h-16 sm:w-20 sm:h-20 animate-float" style="animation-delay: 0.8s;" viewBox="0 0 16 14">
+          <path d="M4 1h8v2h2v3h2v4h-2V8h-2v4h-2v-2H6v2H4V8H2v2H0V6h2V3h2V1z" fill="#4f0ba8" stroke="#ffffff" stroke-width="0.6"/>
+          <rect x="5" y="5" width="2" height="2" fill="#ff1e8a"/>
+          <rect x="9" y="5" width="2" height="2" fill="#ff1e8a"/>
+        </svg>
+      </div>
+
+      <!-- Pixel Brick Floor -->
+      <div class="w-full h-11 bg-[#7d70ff] border-t-4 border-[#b8b0ff] grid grid-cols-12">
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div class="border-r-4 border-[#4d3ec7]"></div>
+        <div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 3: MAIN DASHBOARD & LIBRARY (Matching Mockup 3)                -->
+  <!-- ===================================================================== -->
+  <section id="screen-dashboard" class="hidden relative w-full min-h-screen flex flex-col justify-between overflow-x-hidden">
+    <!-- Subtle Pixel City Skyline Background -->
+    <div class="fixed inset-0 pointer-events-none opacity-35 z-0">
+      <div class="absolute bottom-8 left-0 w-36 h-80 bg-[#1eb8d9] border-r-4 border-[#ff59b4] flex flex-col justify-around p-3">
+        <div class="h-4 bg-[#441082]"></div>
+        <div class="h-4 bg-[#441082]"></div>
+        <div class="h-4 bg-[#441082]"></div>
+        <div class="h-4 bg-[#441082]"></div>
+        <div class="h-4 bg-[#441082]"></div>
+      </div>
+      <div class="absolute bottom-8 right-0 w-44 h-72 bg-[#2b0959] border-l-4 border-[#1eb8d9] grid grid-cols-3 gap-2 p-3">
+        <div class="bg-[#ff59b4] h-4"></div><div class="bg-[#1eb8d9] h-4"></div><div></div>
+        <div></div><div class="bg-[#ff59b4] h-4"></div><div class="bg-[#1eb8d9] h-4"></div>
+        <div class="bg-[#1eb8d9] h-4"></div><div></div><div class="bg-[#ff59b4] h-4"></div>
+      </div>
+    </div>
+
+    <!-- TOP BAR: Profile Avatar + RPG Name Bar (Left) & 3 Action Icons (Right) -->
+    <header class="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-4 sm:pt-6 flex flex-wrap items-center justify-between gap-4">
+      <!-- Top-Left User Profile Pill -->
+      <div class="flex items-center">
+        <!-- Circular Gold-Framed Avatar (Click to Upload Profile Photo) -->
+        <label for="upload-avatar-input" title="Click to upload profile photo" class="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-[#ffe05d] shadow-[0_0_0_3px_#1b0836] overflow-hidden bg-[#2b0959] cursor-pointer group flex items-center justify-center">
+          <img id="profile-avatar-img" src="" alt="Profile" class="w-full h-full object-cover hidden" />
+          <div id="profile-avatar-fallback" class="w-full h-full flex flex-col items-center justify-center bg-[#f2d0a9] text-[#2b0959]">
+            <span class="text-2xl">👾</span>
+          </div>
+          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[9px] font-arcade text-center text-[#ffe05d] p-1">
+            PHOTO
+          </div>
+        </label>
+        <input id="upload-avatar-input" type="file" accept="image/*" class="hidden" />
+
+        <!-- Green RPG Health-Bar Name Tag -->
+        <div class="relative -ml-3 flex items-center bg-[#7b6f8a] border-4 border-[#271b38] rounded-r-xl h-10 sm:h-11 pr-5 shadow-[4px_4px_0_rgba(0,0,0,0.35)]">
+          <div class="bg-[#649e47] h-full flex items-center pl-5 pr-4 border-r-4 border-[#3c6927]">
+            <input
+              id="dashboard-username-input"
+              type="text"
+              value="ADAM"
+              maxlength="14"
+              title="Click to edit your name"
+              class="bg-transparent text-white font-arcade text-xs sm:text-sm w-24 sm:w-32 focus:outline-none uppercase tracking-wider"
+            />
+          </div>
+          <span class="ml-2 text-[10px] text-white/75 font-pixel hidden sm:inline">LVL 99</span>
+        </div>
+      </div>
+
+      <!-- Top-Right 3 Action Icons (Upload music, Theme colour, Upload pdf) -->
+      <div class="flex items-center gap-4 sm:gap-7">
+        <!-- 1. Upload Music (Vinyl Record Icon) -->
+        <button id="btn-open-music-modal" class="group flex flex-col items-center gap-1.5 cursor-pointer focus:outline-none">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#120b24] border-2 border-[#392861] flex items-center justify-center shadow-[0_4px_0_#000] group-hover:scale-110 transition-transform">
+            <svg id="header-vinyl-svg" class="w-10 h-10" viewBox="0 0 32 32">
+              <circle cx="16" cy="16" r="14" fill="#171426" stroke="#473c6e" stroke-width="1.5"/>
+              <circle cx="16" cy="16" r="10" fill="none" stroke="#2c2447" stroke-width="1"/>
+              <circle cx="16" cy="16" r="5" fill="#d9268b"/>
+              <circle cx="16" cy="16" r="1.8" fill="#ffffff"/>
+            </svg>
+          </div>
+          <span class="font-pixel text-[10px] sm:text-xs text-white drop-shadow-[1px_1px_0_#000]">Upload music</span>
+        </button>
+
+        <!-- 2. Theme Colour (RGB Venn Diagram Icon) -->
+        <button id="btn-open-theme-modal" class="group flex flex-col items-center gap-1.5 cursor-pointer focus:outline-none">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-12 h-12 drop-shadow-[0_4px_0_#000]" viewBox="0 0 32 32">
+              <circle cx="16" cy="11" r="8" fill="#ff1e27" fill-opacity="0.9"/>
+              <circle cx="11" cy="20" r="8" fill="#1e5bff" fill-opacity="0.9"/>
+              <circle cx="21" cy="20" r="8" fill="#ffe600" fill-opacity="0.9"/>
+            </svg>
+          </div>
+          <span class="font-pixel text-[10px] sm:text-xs text-white drop-shadow-[1px_1px_0_#000]">Theme colour</span>
+        </button>
+
+        <!-- 3. Upload PDF (White Pixel Space-Invader Icon) -->
+        <label for="upload-pdf-input" class="group flex flex-col items-center gap-1.5 cursor-pointer">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-12 h-12 drop-shadow-[0_4px_0_#000]" viewBox="0 0 16 14">
+              <path d="M3 1h2v2H3V1zm8 0h2v2h-2V1zM4 3h8v2h2v3h2v3h-2V9h-2v3H9v-2H7v2H4V9H2v2H0V8h2V5h2V3z" fill="#e8ebff"/>
+              <rect x="5" y="5" width="2" height="2" fill="#441082"/>
+              <rect x="9" y="5" width="2" height="2" fill="#441082"/>
+            </svg>
+          </div>
+          <span class="font-pixel text-[10px] sm:text-xs text-white drop-shadow-[1px_1px_0_#000]">Upload pdf</span>
+        </label>
+        <input id="upload-pdf-input" type="file" accept="application/pdf,.pdf" multiple class="hidden" />
+      </div>
+    </header>
+
+    <!-- MAIN DASHBOARD GRID (Matching Mockup 3 Layout) -->
+    <main class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-10 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- LEFT COLUMN (7 cols): "in Progress" Bubble + "Finish" Bubble -->
+      <div class="lg:col-span-7 flex flex-col gap-9">
+
+        <!-- CARD 1: "in Progress" Speech Bubble with Running Pixel Hero on Top -->
+        <div class="relative pt-8">
+          <!-- Running Pixel Hero Sprite on Top of Bubble -->
+          <svg class="w-16 h-16 absolute -top-4 left-1/2 -translate-x-1/2 z-20 animate-sprite" viewBox="0 0 24 24">
+            <!-- Golden Hair & Cape -->
+            <path d="M2 10h6v4H1v-2h1v-2z" fill="#7d5fff"/>
+            <rect x="9" y="2" width="7" height="4" fill="#ffd43b"/>
+            <rect x="10" y="6" width="6" height="5" fill="#ffbe94"/>
+            <rect x="14" y="7" width="2" height="2" fill="#18082b"/>
+            <!-- Blue Tunic -->
+            <rect x="8" y="11" width="8" height="6" fill="#4dabf7"/>
+            <rect x="16" y="11" width="4" height="3" fill="#ffbe94"/>
+            <!-- Running Legs -->
+            <rect x="6" y="17" width="4" height="5" fill="#ffd43b"/>
+            <rect x="14" y="17" width="5" height="4" fill="#ffd43b"/>
+          </svg>
+
+          <div class="pixel-bubble tail-top-left p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-pixel text-lg sm:text-2xl font-bold text-[#111]">in Progress</h3>
+              <span id="inprogress-count" class="font-pixel text-xs bg-[#ede4ff] text-[#441082] px-2.5 py-1 rounded border-2 border-[#111]">0 books</span>
+            </div>
+
+            <!-- Carousel Row with < and > buttons -->
+            <div class="flex items-center gap-2 sm:gap-3">
+              <button id="btn-prev-progress" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Previous">
+                &lt;
+              </button>
+
+              <div id="inprogress-grid" class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Book cards rendered dynamically here -->
+              </div>
+
+              <button id="btn-next-progress" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Next">
+                &gt;
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-3 text-xs">
-          <span class="opacity-75">Volume</span>
-          <input id="musicVolumeInput" type="range" min="0" max="1" step="0.05" value="0.5" class="w-36 accent-text cursor-pointer" />
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input id="musicLoopCheckbox" type="checkbox" checked class="rounded" />
-            <span>Loop</span>
-          </label>
+        <!-- CARD 2: "Finish" Speech Bubble -->
+        <div class="relative">
+          <div class="pixel-bubble tail-top-left p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-pixel text-lg sm:text-2xl font-bold text-[#111]">Finish</h3>
+              <span id="finish-count" class="font-pixel text-xs bg-[#e2fce8] text-[#15692b] px-2.5 py-1 rounded border-2 border-[#111]">0 books</span>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+              <button id="btn-prev-finish" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Previous">
+                &lt;
+              </button>
+
+              <div id="finish-grid" class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Finished book cards rendered dynamically here -->
+              </div>
+
+              <button id="btn-next-finish" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Next">
+                &gt;
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div id="playlistContainer" class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-        <p class="text-xs opacity-60 text-center py-4">Upload one or more audio files to build your playlist.</p>
+      <!-- RIGHT COLUMN (5 cols): "Favourite book" Bubble + "Music" Bubble & Corgi/Girl -->
+      <div class="lg:col-span-5 flex flex-col gap-9">
+
+        <!-- CARD 3: "Favourite book" Speech Bubble with Pixel Cat on Top & Golden Crown -->
+        <div class="relative pt-8 max-w-md w-full mx-auto lg:ml-auto">
+          <!-- Cute Lavender Pixel Cat on Top of Bubble -->
+          <svg class="w-14 h-12 absolute -top-2 left-1/2 -translate-x-1/2 z-20" viewBox="0 0 18 14">
+            <path d="M3 2h2v2h4V2h2v4h2v5h3v2H2V6h1V2z" fill="#c792ff" stroke="#18082b" stroke-width="1"/>
+            <rect x="4" y="6" width="2" height="2" fill="#18082b"/>
+            <rect x="8" y="6" width="2" height="2" fill="#18082b"/>
+            <rect x="6" y="8" width="2" height="1" fill="#ff73b9"/>
+          </svg>
+
+          <div class="pixel-bubble tail-top-right p-5 sm:p-6 flex flex-col items-center text-center">
+            <h3 class="font-pixel text-lg sm:text-2xl font-bold text-[#111] mb-2">Favourite book</h3>
+
+            <!-- Golden Pixel Crown -->
+            <svg class="w-14 h-10 mb-2 drop-shadow-[2px_2px_0_#111]" viewBox="0 0 20 14">
+              <path d="M1 3h2v3h3V2h2v4h4V2h2v4h3V3h2v9H1V3z" fill="#ffd43b" stroke="#111" stroke-width="1"/>
+              <rect x="4" y="8" width="2" height="2" fill="#ff3b6b"/>
+              <rect x="9" y="8" width="2" height="2" fill="#3bc9db"/>
+              <rect x="14" y="8" width="2" height="2" fill="#ff3b6b"/>
+            </svg>
+
+            <!-- Featured Favourite Book Slot -->
+            <div id="favourite-book-slot" class="w-full max-w-[210px]">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 4: Pixel Girl & Corgi Dog + "Music" Speech Bubble -->
+        <div class="relative flex flex-col sm:flex-row items-center sm:items-end justify-end gap-4 mt-2">
+          <!-- Corgi Dog & Blonde Pixel Girl with Hearts (Left of Music Bubble) -->
+          <div class="flex items-end gap-1 shrink-0">
+            <!-- Pixel Corgi with Mini Hearts -->
+            <div class="flex flex-col items-center">
+              <div class="flex gap-0.5 text-[10px] text-[#ff5938] mb-0.5">♥♥♥♥♥</div>
+              <svg class="w-14 h-14" viewBox="0 0 18 16">
+                <path d="M11 2h2v3h3v4h-2v6h-2v-3H6v3H4V9H2V7h2v1h7V2z" fill="#e88d2a" stroke="#18082b" stroke-width="0.9"/>
+                <rect x="13" y="4" width="2" height="2" fill="#18082b"/>
+                <rect x="6" y="9" width="6" height="3" fill="#ffffff"/>
+              </svg>
+            </div>
+
+            <!-- Pixel Girl with Hearts -->
+            <div class="flex flex-col items-center">
+              <div class="flex gap-0.5 text-xs text-[#ff5938] mb-0.5">♥♥♥♥♥</div>
+              <svg class="w-16 h-24" viewBox="0 0 18 26">
+                <!-- Pink Ribbon + Blonde Hair -->
+                <rect x="6" y="0" width="6" height="2" fill="#ff3b8d"/>
+                <rect x="4" y="2" width="10" height="10" rx="3" fill="#ffe05d"/>
+                <rect x="5" y="6" width="8" height="6" fill="#ffbe94"/>
+                <rect x="6" y="8" width="2" height="2" fill="#18082b"/>
+                <rect x="10" y="8" width="2" height="2" fill="#18082b"/>
+                <!-- Magenta Top + Blue Skirt -->
+                <rect x="4" y="12" width="10" height="6" fill="#e6198e"/>
+                <rect x="5" y="18" width="8" height="4" fill="#228be6"/>
+                <!-- Legs -->
+                <rect x="5" y="22" width="3" height="4" fill="#ffbe94"/>
+                <rect x="10" y="22" width="3" height="4" fill="#ffbe94"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- "Music" Mini Player Speech Bubble -->
+          <div class="pixel-bubble tail-left-mid p-4 sm:p-5 w-full max-w-[290px] text-center">
+            <h3 class="font-pixel text-lg sm:text-xl font-bold text-[#111] mb-3">Music</h3>
+
+            <!-- Prev / Play-Pause / Next Pixel Circle Buttons -->
+            <div class="flex items-center justify-center gap-4 mb-3">
+              <button id="mini-prev-track" class="w-10 h-10 rounded-full border-4 border-[#1b1240] flex items-center justify-center hover:bg-[#efe6ff] active:scale-95 cursor-pointer" title="Previous Track">
+                <svg class="w-4 h-4 fill-[#1b1240]" viewBox="0 0 16 16">
+                  <polygon points="12,2 4,8 12,14"/>
+                </svg>
+              </button>
+
+              <button id="mini-play-pause" class="w-14 h-14 rounded-full border-4 border-[#1b1240] flex items-center justify-center hover:bg-[#efe6ff] active:scale-95 cursor-pointer" title="Play / Pause">
+                <!-- Pause Icon -->
+                <svg id="mini-icon-pause" class="w-6 h-6 fill-[#1b1240] hidden" viewBox="0 0 16 16">
+                  <rect x="3" y="2" width="4" height="12"/>
+                  <rect x="9" y="2" width="4" height="12"/>
+                </svg>
+                <!-- Play Icon -->
+                <svg id="mini-icon-play" class="w-6 h-6 fill-[#1b1240] ml-1" viewBox="0 0 16 16">
+                  <polygon points="3,2 14,8 3,14"/>
+                </svg>
+              </button>
+
+              <button id="mini-next-track" class="w-10 h-10 rounded-full border-4 border-[#1b1240] flex items-center justify-center hover:bg-[#efe6ff] active:scale-95 cursor-pointer" title="Next Track">
+                <svg class="w-4 h-4 fill-[#1b1240]" viewBox="0 0 16 16">
+                  <polygon points="4,2 12,8 4,14"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Current Track Title -->
+            <div id="mini-track-title" class="font-pixel text-xs sm:text-sm text-[#111] truncate px-2">
+              Angel Bite - TXT
+            </div>
+            <button id="btn-open-playlist-sub" class="mt-2 text-[10px] font-pixel underline text-[#591db5] hover:text-[#111] cursor-pointer">
+              Open Playlist &amp; Video Converter
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Pixel Brick Floor -->
+    <div class="relative z-10 w-full h-8 bg-[#ff87ab] border-t-4 border-[#ffc2d4] grid grid-cols-12 mt-4">
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div class="border-r-4 border-[#b53864]"></div>
+      <div></div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 4: SCROLLABLE INTERACTIVE PDF READER                           -->
+  <!-- ===================================================================== -->
+  <section id="screen-reader" class="hidden fixed inset-0 z-40 bg-[#18072e] flex flex-col">
+    <!-- Top Reader Toolbar -->
+    <div class="bg-[#290b4f] border-b-4 border-[#0a0414] px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+      <!-- Left: Back to Library + Editable PDF Name -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-[200px]">
+        <button id="btn-reader-back" class="win95-btn px-3 py-1.5 font-pixel text-xs sm:text-sm font-bold cursor-pointer shrink-0">
+          ← LIBRARY
+        </button>
+
+        <div class="flex items-center bg-[#140529] border-2 border-[#8c52ff] rounded px-2.5 py-1 flex-1 max-w-md">
+          <span class="text-[#ffe94d] text-xs mr-2" title="Editable PDF Name">✎</span>
+          <input
+            id="reader-book-title"
+            type="text"
+            value="Book Title"
+            title="Click to rename this PDF"
+            class="w-full bg-transparent text-white font-pixel text-xs sm:text-sm focus:outline-none"
+          />
+        </div>
       </div>
 
-      <audio id="bgAudioPlayer" class="hidden"></audio>
-    </div>
-  </div>
+      <!-- Center: Rating Hearts + Favourite Crown + Finish Toggle -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <!-- 5-Heart Rating -->
+        <div id="reader-rating-stars" class="flex items-center gap-1 bg-[#140529] border-2 border-[#4d2680] rounded px-2 py-1" title="Rate this book">
+          <!-- Hearts populated by JS -->
+        </div>
 
-  <!-- EDIT COLOURS MODAL -->
-  <div id="colorsModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="card-surface w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-bold text-lg flex items-center gap-2">
-          <i data-lucide="palette" class="w-5 h-5 accent-text"></i> Theme &amp; Colours
-        </h3>
-        <button id="closeColorsModalBtn" class="p-1 rounded-lg opacity-70 hover:opacity-100">
-          <i data-lucide="x" class="w-5 h-5"></i>
+        <!-- Set as Favourite Book -->
+        <button id="btn-reader-fav" class="px-2.5 py-1.5 rounded border-2 border-[#ffd43b] bg-[#140529] text-[#ffd43b] font-pixel text-xs hover:bg-[#ffd43b] hover:text-[#140529] transition-colors cursor-pointer" title="Set as Favourite Book">
+          👑 FAV
+        </button>
+
+        <!-- Toggle In Progress / Finish -->
+        <button id="btn-reader-finish" class="px-2.5 py-1.5 rounded border-2 border-[#4dff94] bg-[#140529] text-[#4dff94] font-pixel text-xs hover:bg-[#4dff94] hover:text-[#140529] transition-colors cursor-pointer">
+          ✓ MARK FINISH
         </button>
       </div>
 
-      <div class="grid grid-cols-4 gap-2">
-        <button data-preset="sepia" class="preset-btn py-2 px-2 rounded-xl border border-black/15 text-xs font-semibold">Sepia</button>
-        <button data-preset="light" class="preset-btn py-2 px-2 rounded-xl border border-black/15 text-xs font-semibold">Light</button>
-        <button data-preset="dark" class="preset-btn py-2 px-2 rounded-xl border border-black/15 text-xs font-semibold">Dark</button>
-        <button data-preset="rose" class="preset-btn py-2 px-2 rounded-xl border border-black/15 text-xs font-semibold">Rose</button>
+      <!-- Right: Zoom Controls + Persistent Mini Music Toggle -->
+      <div class="flex items-center gap-2">
+        <button id="btn-zoom-out" class="bg-[#3d1473] hover:bg-[#521d99] border-2 border-white/30 px-2.5 py-1 font-arcade text-xs rounded cursor-pointer">-</button>
+        <span id="reader-zoom-label" class="font-pixel text-xs w-11 text-center">100%</span>
+        <button id="btn-zoom-in" class="bg-[#3d1473] hover:bg-[#521d99] border-2 border-white/30 px-2.5 py-1 font-arcade text-xs rounded cursor-pointer">+</button>
+
+        <button id="btn-reader-music-toggle" class="ml-1 bg-[#ff3b8d] hover:bg-[#ff5ca1] text-white border-2 border-[#111] px-2.5 py-1 rounded font-pixel text-xs cursor-pointer flex items-center gap-1" title="Play/Pause Background Music">
+          <span>♪</span>
+          <span id="reader-music-status" class="hidden sm:inline">BGM</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Second Sub-Toolbar: Mark Line Highlighter & Reading Filters -->
+    <div class="bg-[#1e083b] border-b-2 border-[#3b156e] px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <!-- Mark Line / Last Sentence Read Controls -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btn-toggle-markline" class="px-3 py-1 rounded border-2 border-[#ffe94d] bg-[#ffe94d] text-[#140529] font-pixel font-bold cursor-pointer flex items-center gap-1.5">
+          <span>🖍</span>
+          <span id="markline-mode-label">Mark Last Line: ON</span>
+        </button>
+
+        <button id="btn-jump-lastline" class="px-2.5 py-1 rounded border-2 border-[#ff3b8d] bg-[#2e0c4d] text-[#ff85b8] hover:bg-[#ff3b8d] hover:text-white font-pixel cursor-pointer">
+          ↓ Jump to Marked Line
+        </button>
+
+        <button id="btn-clear-lines" class="px-2.5 py-1 rounded border border-white/30 text-white/75 hover:text-white font-pixel cursor-pointer">
+          Clear Marks
+        </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 text-xs">
-        <label class="flex items-center justify-between p-2.5 rounded-xl bg-black/5">
-          <span>Background</span>
-          <input id="colorBgApp" type="color" class="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-        </label>
-        <label class="flex items-center justify-between p-2.5 rounded-xl bg-black/5">
-          <span>Cards</span>
-          <input id="colorBgCard" type="color" class="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-        </label>
-        <label class="flex items-center justify-between p-2.5 rounded-xl bg-black/5">
-          <span>Text</span>
-          <input id="colorTextMain" type="color" class="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-        </label>
-        <label class="flex items-center justify-between p-2.5 rounded-xl bg-black/5">
-          <span>Accent</span>
-          <input id="colorAccent" type="color" class="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-        </label>
-        <label class="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-black/5">
-          <span>PDF Page Tint</span>
-          <input id="colorPaper" type="color" class="w-7 h-7 rounded cursor-pointer border-0 bg-transparent" />
-        </label>
+      <!-- Reading Filters -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="font-pixel text-white/70 mr-1">Filter:</span>
+        <button data-filter="normal" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#6722b8] text-white font-pixel cursor-pointer">Normal</button>
+        <button data-filter="sepia" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-[#f5deb3] font-pixel cursor-pointer">Warm</button>
+        <button data-filter="amber" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-[#ffb84d] font-pixel cursor-pointer">Amber</button>
+        <button data-filter="dark" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-[#a5d8ff] font-pixel cursor-pointer">Night</button>
+        <button data-filter="contrast" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-white font-pixel cursor-pointer">Crisp</button>
       </div>
+    </div>
 
-      <div class="flex justify-end gap-2 pt-1">
-        <button id="doneColorModalBtn" class="px-4 py-2 rounded-xl accent-bg text-xs font-semibold">Save &amp; Close</button>
+    <!-- Helper Tip Banner -->
+    <div class="bg-[#120424] text-[#d0bfff] text-[11px] font-pixel px-4 py-1 text-center border-b border-white/10">
+      Scroll smoothly through all pages • Click anywhere on a sentence/line to place your <span class="text-[#ffe94d]">Last Read Line Marker</span>!
+    </div>
+
+    <!-- Continuous Vertical Scrollable PDF Container -->
+    <div id="pdf-scroll-container" class="flex-1 overflow-y-auto px-3 sm:px-8 py-6 bg-[#100421]">
+      <div id="pdf-pages-wrapper" class="filter-normal max-w-4xl mx-auto flex flex-col items-center">
+        <!-- All PDF pages rendered vertically here -->
+      </div>
+    </div>
+
+    <!-- Bottom Scroll Progress Indicator -->
+    <div class="bg-[#290b4f] border-t-2 border-[#0a0414] px-4 py-1.5 flex items-center justify-between text-xs font-pixel">
+      <span id="reader-page-indicator">Page 1 of 1</span>
+      <div class="w-40 sm:w-64 h-3 bg-[#120424] border border-white/30 rounded overflow-hidden">
+        <div id="reader-progress-bar" class="h-full bg-[#4dff94] w-0 transition-all"></div>
+      </div>
+      <span id="reader-percent-label">0%</span>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: THEME COLOUR SWITCHER                                        -->
+  <!-- ===================================================================== -->
+  <div id="modal-theme" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+    <div class="win95-box w-full max-w-md">
+      <div class="win95-titlebar px-4 py-2.5 flex items-center justify-between">
+        <span class="font-arcade text-xs sm:text-sm text-white">THEME COLOUR</span>
+        <button id="btn-close-theme" class="win95-btn px-2 py-0.5 font-arcade text-xs cursor-pointer">X</button>
+      </div>
+      <div class="p-5 text-[#111] flex flex-col gap-4">
+        <p class="font-pixel text-sm">Choose an arcade palette or pick your custom background colour:</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button data-theme-bg="#441082" data-theme-bubble="#ffffff" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
+            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#441082"></span>
+            <span class="font-pixel text-xs font-bold">Cosmic Purple</span>
+          </button>
+          <button data-theme-bg="#0d2b6b" data-theme-bubble="#ffffff" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
+            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#0d2b6b"></span>
+            <span class="font-pixel text-xs font-bold">Cyber Midnight</span>
+          </button>
+          <button data-theme-bg="#8f1d58" data-theme-bubble="#fff8fc" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
+            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#8f1d58"></span>
+            <span class="font-pixel text-xs font-bold">Synthwave Pink</span>
+          </button>
+          <button data-theme-bg="#194d33" data-theme-bubble="#f4ffea" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
+            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#194d33"></span>
+            <span class="font-pixel text-xs font-bold">GameBoy Forest</span>
+          </button>
+          <button data-theme-bg="#7a1616" data-theme-bubble="#ffffff" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
+            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#7a1616"></span>
+            <span class="font-pixel text-xs font-bold">Crimson Arcade</span>
+          </button>
+          <button data-theme-bg="#1b1d29" data-theme-bubble="#f1f3f5" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
+            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#1b1d29"></span>
+            <span class="font-pixel text-xs font-bold">Obsidian Night</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between bg-[#a8a8a8] p-3 border-2 border-[#444]">
+          <label for="custom-theme-picker" class="font-pixel text-xs font-bold">Custom Hex Colour:</label>
+          <input id="custom-theme-picker" type="color" value="#441082" class="w-12 h-8 border-2 border-black cursor-pointer" />
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: BACKGROUND MUSIC PLAYLIST & VIDEO-TO-AUDIO CONVERTER         -->
+  <!-- ===================================================================== -->
+  <div id="modal-music" class="hidden fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+    <div class="win95-box w-full max-w-xl max-h-[90vh] flex flex-col">
+      <div class="win95-titlebar px-4 py-2.5 flex items-center justify-between">
+        <span class="font-arcade text-xs sm:text-sm text-white">BGM PLAYLIST &amp; VIDEO CONVERTER</span>
+        <button id="btn-close-music" class="win95-btn px-2 py-0.5 font-arcade text-xs cursor-pointer">X</button>
+      </div>
+
+      <div class="p-4 sm:p-5 text-[#111] overflow-y-auto flex flex-col gap-4">
+        <!-- Upload Audio or Video Box -->
+        <div class="bg-[#d6d6d6] border-2 border-[#555] p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div>
+            <h4 class="font-pixel font-bold text-sm">Upload Audio or Video</h4>
+            <p class="font-pixel text-xs text-[#333]">Supports MP3, WAV, OGG, or MP4/WEBM/MOV (auto-converts video to audio!)</p>
+          </div>
+          <label for="upload-media-input" class="win95-btn px-4 py-2 font-pixel text-xs font-bold cursor-pointer shrink-0 bg-[#ffe94d]">
+            + ADD MEDIA
+          </label>
+          <input id="upload-media-input" type="file" accept="audio/*,video/*" multiple class="hidden" />
+        </div>
+
+        <!-- Video-to-Audio Conversion Progress Bar -->
+        <div id="converter-status-box" class="hidden bg-[#18072e] text-[#ffe94d] border-4 border-[#111] p-3">
+          <div class="flex justify-between font-pixel text-xs mb-1.5">
+            <span id="converter-label">Converting Video to Audio WAV...</span>
+            <span id="converter-percent">0%</span>
+          </div>
+          <div class="w-full h-4 bg-[#341261] border-2 border-white">
+            <div id="converter-bar" class="h-full bg-[#4dff94] w-0 transition-all"></div>
+          </div>
+        </div>
+
+        <!-- Player Controls + Volume -->
+        <div class="bg-[#1b0933] text-white border-4 border-[#111] p-3.5 flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="truncate">
+              <span class="text-[10px] text-[#ffe94d] font-arcade block">NOW PLAYING</span>
+              <span id="modal-now-playing" class="font-pixel text-sm sm:text-base">Angel Bite - TXT (Chiptune)</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button id="modal-btn-prev" class="win95-btn px-2.5 py-1 font-pixel text-xs font-bold cursor-pointer">⏮</button>
+              <button id="modal-btn-play" class="win95-btn px-3.5 py-1 font-pixel text-xs font-bold cursor-pointer">▶ / ❚❚</button>
+              <button id="modal-btn-next" class="win95-btn px-2.5 py-1 font-pixel text-xs font-bold cursor-pointer">⏭</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 text-xs font-pixel">
+            <span>VOL</span>
+            <input id="bgm-volume-slider" type="range" min="0" max="1" step="0.05" value="0.65" class="flex-1 accent-[#ffe94d] cursor-pointer" />
+          </div>
+        </div>
+
+        <!-- Playlist Queue -->
+        <div>
+          <h4 class="font-pixel font-bold text-sm mb-2">Playlist Tracks</h4>
+          <div id="playlist-items-container" class="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+            <!-- Tracks rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden HTML5 Audio Element for Uploaded / Converted BGM -->
+  <audio id="bgm-audio-player" preload="auto"></audio>
 
   <script>
-    // ==================== REPLACE THESE TWO VALUES ====================
-    const SUPABASE_URL = 'https://kwtvuiqkvrcocknogfqel.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_upEi1U_uHkkIpCWIEbp4cA_WzMb174q';
-    const BUCKET_NAME = 'ebooks';
+    // =========================================================================
+    // 1. INITIALIZATION & PIXEL MATRIX LOGO RENDERER (">E-BOOKZ<")
+    // =========================================================================
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const PRESETS = {
-      sepia: { bgApp: '#EFE6D5', bgCard: '#F8F2E7', text: '#2B241D', accent: '#B4653E', paper: '#FFFDF8' },
-      light: { bgApp: '#F3F4F6', bgCard: '#FFFFFF', text: '#111827', accent: '#2563EB', paper: '#FFFFFF' },
-      dark:  { bgApp: '#121316', bgCard: '#1E2025', text: '#E5E7EB', accent: '#60A5FA', paper: '#E8E6E1' },
-      rose:  { bgApp: '#FDF2F8', bgCard: '#FFFFFF', text: '#4A1533', accent: '#DB2777', paper: '#FFF9FC' }
+    function renderPixelMatrixLogo() {
+      const container = document.getElementById('pixel-logo-banner');
+      if (!container) return;
+
+      // 5x7 Pixel Bitmaps for ">E-BOOKZ<"
+      const glyphs = {
+        '>': [
+          '1000',
+          '0100',
+          '0010',
+          '0001',
+          '0010',
+          '0100',
+          '1000'
+        ],
+        'E': [
+          '11111',
+          '10000',
+          '10000',
+          '11110',
+          '10000',
+          '10000',
+          '11111'
+        ],
+        '-': [
+          '0000',
+          '0000',
+          '0000',
+          '1111',
+          '0000',
+          '0000',
+          '0000'
+        ],
+        'B': [
+          '11110',
+          '10001',
+          '10001',
+          '11110',
+          '10001',
+          '10001',
+          '11110'
+        ],
+        'O': [
+          '01110',
+          '10001',
+          '10001',
+          '10001',
+          '10001',
+          '10001',
+          '01110'
+        ],
+        'K': [
+          '10001',
+          '10010',
+          '10100',
+          '11000',
+          '10100',
+          '10010',
+          '10001'
+        ],
+        'Z': [
+          '11111',
+          '00001',
+          '00010',
+          '00100',
+          '01000',
+          '10000',
+          '11111'
+        ],
+        '<': [
+          '0001',
+          '0010',
+          '0100',
+          '1000',
+          '0100',
+          '0010',
+          '0001'
+        ]
+      };
+
+      const word = '>E-BOOKZ<';
+      const cell = 11;
+      const gap = 1;
+      const letterSpacing = 12;
+      let totalWidth = 0;
+
+      for (const ch of word) {
+        totalWidth += glyphs[ch][0].length * (cell + gap) + letterSpacing;
+      }
+      totalWidth -= letterSpacing;
+      const totalHeight = 7 * (cell + gap);
+
+      let svgCells = '';
+      let cursorX = 0;
+
+      for (const ch of word) {
+        const matrix = glyphs[ch];
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+        const isBracketOrDash = ch === '>' || ch === '<' || ch === '-';
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (matrix[r][c] === '1') {
+              const x = cursorX + c * (cell + gap);
+              const y = r * (cell + gap);
+              // Lavender outer pixel frame + bright yellow pixel cell (matching Mockup 1)
+              const fill = isBracketOrDash ? '#ffe94d' : '#ffea38';
+              const stroke = '#9366ff';
+              svgCells += `<rect x="${x - 3}" y="${y - 3}" width="${cell + 6}" height="${cell + 6}" fill="${stroke}" />`;
+              svgCells += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="${fill}" stroke="#7842e8" stroke-width="1.2" />`;
+            }
+          }
+        }
+        cursorX += cols * (cell + gap) + letterSpacing;
+      }
+
+      container.innerHTML = `
+        <svg viewBox="-6 -6 ${totalWidth + 12} ${totalHeight + 12}" class="w-full h-auto max-h-28 sm:max-h-36 mx-auto drop-shadow-[0_6px_0_#24064a]">
+          ${svgCells}
+        </svg>
+      `;
+    }
+
+    // =========================================================================
+    // 2. INDEXEDDB STORAGE FOR PDFs, AUDIO/VIDEO BLOBS & BOOK METADATA
+    // =========================================================================
+    const DB_NAME = 'EBookzArcadeDB';
+    const DB_VERSION = 1;
+    let db = null;
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const database = e.target.result;
+          if (!database.objectStoreNames.contains('books')) {
+            database.createObjectStore('books', { keyPath: 'id' });
+          }
+          if (!database.objectStoreNames.contains('tracks')) {
+            database.createObjectStore('tracks', { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = (e) => {
+          db = e.target.result;
+          resolve(db);
+        };
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function dbPut(storeName, item) {
+      return new Promise((resolve, reject) => {
+        if (!db) return resolve();
+        const tx = db.transaction(storeName, 'readwrite');
+        tx.objectStore(storeName).put(item);
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function dbGetAll(storeName) {
+      return new Promise((resolve, reject) => {
+        if (!db) return resolve([]);
+        const tx = db.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function dbDelete(storeName, id) {
+      return new Promise((resolve, reject) => {
+        if (!db) return resolve();
+        const tx = db.transaction(storeName, 'readwrite');
+        tx.objectStore(storeName).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    // =========================================================================
+    // 3. APPLICATION STATE
+    // =========================================================================
+    const state = {
+      username: localStorage.getItem('ebookz_username') || 'ADAM',
+      avatarDataUrl: localStorage.getItem('ebookz_avatar') || '',
+      themeBg: localStorage.getItem('ebookz_theme_bg') || '#441082',
+      themeBubble: localStorage.getItem('ebookz_theme_bubble') || '#ffffff',
+      books: [],
+      progressOffset: 0,
+      finishOffset: 0,
+      activeBookId: null,
+      pdfDoc: null,
+      zoom: 1.15,
+      markLineMode: true,
+      readingFilter: 'normal',
+      tracks: [],
+      currentTrackIndex: 0,
+      isPlaying: false
     };
 
-    const isCloudConfigured =
-      SUPABASE_URL.startsWith('https://') &&
-      !SUPABASE_URL.includes('YOUR_SUPABASE_URL') &&
-      SUPABASE_ANON_KEY.length > 20 &&
-      !SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY');
-
-    const sb = isCloudConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-    let currentUser = JSON.parse(localStorage.getItem('ebookz_cloud_user') || 'null');
-    let pendingAvatarDataUrl = '';
-    let booksCache = [];
-    let activeFilter = 'all';
-    let activeSort = 'recent';
-    let activeBook = null;
-    let pdfDoc = null;
-    let totalPages = 0;
-    let currentPage = 1;
-    let zoomScale = 1.15;
-    let markLineMode = false;
-    let pageObserver = null;
-    let renderedPages = new Set();
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    // ==================== LOCAL MEDIA DB (PLAYLIST & AVATAR) ====================
-    function openMediaDB() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open('EBookzMediaDB', 1);
-        req.onupgradeneeded = () => {
-          const db = req.result;
-          if (!db.objectStoreNames.contains('media')) db.createObjectStore('media');
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+    function showToast(msg, icon = '★') {
+      const box = document.getElementById('toast-box');
+      document.getElementById('toast-msg').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      box.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        box.classList.add('hidden');
+      }, 2800);
     }
 
-    async function saveMediaItem(key, value) {
-      const db = await openMediaDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('media', 'readwrite');
-        tx.objectStore('media').put(value, key);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-    }
+    // =========================================================================
+    // 4. BUILT-IN SAMPLE RETRO GUIDE PDF GENERATOR (SO IT WORKS IMMEDIATELY)
+    // =========================================================================
+    async function createDefaultWelcomeBook() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
 
-    async function getMediaItem(key) {
-      const db = await openMediaDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('media', 'readonly');
-        const req = tx.objectStore('media').get(key);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-    }
+      // Page 1
+      doc.setFillColor(44, 10, 89);
+      doc.rect(0, 0, 595, 842, 'F');
+      doc.setTextColor(255, 233, 77);
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(28);
+      doc.text('WELCOME TO >E-BOOKZ<', 60, 110);
 
-    // ==================== THEME & COLOURS ====================
-    function applyThemeColors(colors) {
-      const c = { ...PRESETS.sepia, ...(colors || {}) };
-      document.documentElement.style.setProperty('--bg-app', c.bgApp);
-      document.documentElement.style.setProperty('--bg-card', c.bgCard);
-      document.documentElement.style.setProperty('--text-main', c.text);
-      document.documentElement.style.setProperty('--accent', c.accent);
-      document.documentElement.style.setProperty('--paper', c.paper);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      const p1Lines = [
+        'Quest Log #001: Getting Started with Your Retro Reader',
+        '',
+        '1. SCROLLABLE PDF ENGINE:',
+        '   Scroll smoothly through every page continuously without',
+        '   pressing next-page buttons. Your scroll progress is saved!',
+        '',
+        '2. MARK LAST LINE READ (HIGHLIGHTER):',
+        '   Click anywhere on a sentence or line while reading to drop',
+        '   a glowing neon marker bar so you never lose your spot.',
+        '',
+        '3. EYE-COMFORT READING FILTERS:',
+        '   Switch between Normal, Warm Sepia, Amber, Night, or Crisp',
+        '   modes in the top bar for late-night reading quests.',
+        '',
+        '4. CUSTOMIZE EVERYTHING:',
+        '   - Click any book title to rename your PDF.',
+        '   - Rate books with 1-5 hearts & crown your Favourite book.',
+        '   - Upload MP3s or MP4 videos (auto-converted to audio BGM!).'
+      ];
+      doc.text(p1Lines, 60, 170);
 
-      document.getElementById('colorBgApp').value = c.bgApp;
-      document.getElementById('colorBgCard').value = c.bgCard;
-      document.getElementById('colorTextMain').value = c.text;
-      document.getElementById('colorAccent').value = c.accent;
-      document.getElementById('colorPaper').value = c.paper;
-    }
+      // Page 2
+      doc.addPage();
+      doc.setFillColor(255, 252, 240);
+      doc.rect(0, 0, 595, 842, 'F');
+      doc.setTextColor(40, 15, 75);
+      doc.setFontSize(22);
+      doc.text('CHAPTER 2: THE PIXEL LIBRARY', 60, 90);
+      doc.setFontSize(13);
+      const p2Lines = [
+        'Try clicking right on this sentence to mark it as your',
+        'last read line!',
+        '',
+        'When you close the reader and reopen this book later,',
+        'E-BOOKZ remembers your exact scroll position, highlights,',
+        'rating, and completion status.',
+        '',
+        'Upload your own PDFs anytime by clicking the white',
+        'Space Invader icon ("Upload pdf") in the top-right corner',
+        'of your dashboard.'
+      ];
+      doc.text(p2Lines, 60, 150);
 
-    function currentPickerColors() {
-      return {
-        bgApp: document.getElementById('colorBgApp').value,
-        bgCard: document.getElementById('colorBgCard').value,
-        text: document.getElementById('colorTextMain').value,
-        accent: document.getElementById('colorAccent').value,
-        paper: document.getElementById('colorPaper').value
+      const arrayBuffer = doc.output('arraybuffer');
+      const thumbDataUrl = await generatePdfThumbnail(arrayBuffer);
+
+      const sampleBook = {
+        id: 'book-welcome-guide',
+        title: 'E-BOOKZ Quest Guide',
+        pdfData: arrayBuffer,
+        thumbnail: thumbDataUrl,
+        rating: 5,
+        isFavourite: true,
+        isFinished: false,
+        scrollTop: 0,
+        progressPct: 15,
+        filter: 'normal',
+        highlights: [
+          { id: 'hl-init', pageNum: 1, yPct: 37, isLast: true }
+        ],
+        createdAt: Date.now()
       };
+
+      await dbPut('books', sampleBook);
+      return sampleBook;
     }
 
-    async function saveUserSettingsToCloud(colors) {
-      if (!sb || !currentUser) return;
-      await sb.from('user_settings').upsert({
-        user_email: currentUser.email,
-        colors
-      }, { onConflict: 'user_email' });
-    }
-
-    // ==================== SYNC STATUS ====================
-    function setSyncStatus(state, label) {
-      const dot = document.getElementById('syncStatusDot');
-      const text = document.getElementById('syncStatusText');
-      text.textContent = label;
-      dot.className = 'inline-block w-2 h-2 rounded-full ' + (
-        state === 'ok' ? 'bg-emerald-500' : state === 'busy' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'
-      );
-    }
-
-    // ==================== AUTH & PROFILE ====================
-    document.getElementById('authAvatarInput').addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        pendingAvatarDataUrl = reader.result;
-        const img = document.getElementById('authAvatarPreview');
-        img.src = pendingAvatarDataUrl;
-        img.classList.remove('hidden');
-        document.getElementById('authAvatarPlaceholder').classList.add('hidden');
-      };
-      reader.readAsDataURL(file);
-    });
-
-    document.getElementById('authForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('authNameInput').value.trim();
-      const email = document.getElementById('authEmailInput').value.trim().toLowerCase();
-      if (!name || !email) return;
-
-      currentUser = { name, email };
-      localStorage.setItem('ebookz_cloud_user', JSON.stringify(currentUser));
-      if (pendingAvatarDataUrl) {
-        await saveMediaItem(`avatar_${email}`, pendingAvatarDataUrl);
-      }
-      await enterLibrary();
-    });
-
-    function showAuthScreen() {
-      document.getElementById('libraryView').classList.add('hidden');
-      document.getElementById('readerView').classList.add('hidden');
-      document.getElementById('authView').classList.remove('hidden');
-      document.getElementById('configWarning').classList.toggle('hidden', isCloudConfigured);
-      if (currentUser) {
-        document.getElementById('authNameInput').value = currentUser.name || '';
-        document.getElementById('authEmailInput').value = currentUser.email || '';
-      }
-      lucide.createIcons();
-    }
-
-    document.getElementById('signOutBtn').addEventListener('click', () => {
-      audioPlayer.pause();
-      currentUser = null;
-      localStorage.removeItem('ebookz_cloud_user');
-      showAuthScreen();
-    });
-
-    document.getElementById('openProfileBtn').addEventListener('click', showAuthScreen);
-
-    // ==================== LIBRARY & CLOUD SYNC ====================
-    async function enterLibrary() {
-      document.getElementById('authView').classList.add('hidden');
-      document.getElementById('readerView').classList.add('hidden');
-      document.getElementById('libraryView').classList.remove('hidden');
-
-      document.getElementById('headerUserName').textContent = currentUser.name;
-      document.getElementById('headerAvatarFallback').textContent = (currentUser.name[0] || 'U').toUpperCase();
-
-      const avatarUrl = await getMediaItem(`avatar_${currentUser.email}`);
-      const headerImg = document.getElementById('headerAvatarImg');
-      if (avatarUrl) {
-        headerImg.src = avatarUrl;
-        headerImg.classList.remove('hidden');
-        document.getElementById('headerAvatarFallback').classList.add('hidden');
-      } else {
-        headerImg.classList.add('hidden');
-        document.getElementById('headerAvatarFallback').classList.remove('hidden');
-      }
-
-      await loadSavedMusic();
-      await syncLibraryFromCloud();
-      lucide.createIcons();
-    }
-
-    async function syncLibraryFromCloud() {
-      if (!isCloudConfigured || !sb || !currentUser) {
-        setSyncStatus('err', 'Local Only / Not Configured');
-        renderBooksGrid();
-        return;
-      }
-
-      setSyncStatus('busy', 'Syncing...');
+    async function generatePdfThumbnail(arrayBuffer) {
       try {
-        const [{ data: books, error: bErr }, { data: settings, error: sErr }] = await Promise.all([
-          sb.from('user_books').select('*').eq('user_email', currentUser.email).order('updated_at', { ascending: false }),
-          sb.from('user_settings').select('*').eq('user_email', currentUser.email).maybeSingle()
-        ]);
-        if (bErr) throw bErr;
-        if (sErr) throw sErr;
-
-        if (settings?.colors) {
-          applyThemeColors(settings.colors);
-        }
-        booksCache = books || [];
-        setSyncStatus('ok', 'Synced');
-      } catch (err) {
-        console.error('Sync error:', err);
-        setSyncStatus('err', 'Offline / Error');
-      }
-      renderBooksGrid();
-      updateStats();
-    }
-
-    document.getElementById('syncNowBtn').addEventListener('click', syncLibraryFromCloud);
-
-    function updateStats() {
-      const total = booksCache.length;
-      const completed = booksCache.filter(b => b.total_pages > 0 && b.last_page >= b.total_pages).length;
-      const favs = booksCache.filter(b => b.is_favorite).length;
-      const avgPct = total
-        ? Math.round(
-            booksCache.reduce((sum, b) => sum + Math.min(100, Math.round(((b.last_page || 1) / Math.max(1, b.total_pages || 1)) * 100)), 0) / total
-          )
-        : 0;
-
-      document.getElementById('statTotalBooks').textContent = total;
-      document.getElementById('statOverallProgress').textContent = `${avgPct}%`;
-      document.getElementById('statCompleted').textContent = completed;
-      document.getElementById('statFavorites').textContent = favs;
-    }
-
-    function getFilteredAndSortedBooks() {
-      let list = [...booksCache];
-      if (activeFilter === 'reading') {
-        list = list.filter(b => (b.last_page || 1) < (b.total_pages || 1));
-      } else if (activeFilter === 'finished') {
-        list = list.filter(b => (b.total_pages || 1) > 0 && (b.last_page || 1) >= (b.total_pages || 1));
-      } else if (activeFilter === 'favorites') {
-        list = list.filter(b => b.is_favorite);
-      }
-
-      if (activeSort === 'title') {
-        list.sort((a, b) => a.title.localeCompare(b.title));
-      } else if (activeSort === 'progress') {
-        list.sort((a, b) => ((b.last_page || 1) / Math.max(1, b.total_pages || 1)) - ((a.last_page || 1) / Math.max(1, a.total_pages || 1)));
-      } else if (activeSort === 'rating') {
-        list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      } else {
-        list.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
-      }
-      return list;
-    }
-
-    function renderBooksGrid() {
-      const grid = document.getElementById('booksGrid');
-      const emptyMsg = document.getElementById('emptyBooksMsg');
-      const books = getFilteredAndSortedBooks();
-      grid.innerHTML = '';
-
-      if (!books.length) {
-        emptyMsg.classList.remove('hidden');
-        return;
-      }
-      emptyMsg.classList.add('hidden');
-
-      books.forEach(book => {
-        const pct = Math.min(100, Math.round(((book.last_page || 1) / Math.max(1, book.total_pages || 1)) * 100));
-        const card = document.createElement('div');
-        card.className = 'card-surface rounded-2xl border border-black/10 p-4 flex flex-col justify-between gap-4 shadow-sm';
-        card.innerHTML = `
-          <div class="flex gap-3.5">
-            <div class="w-16 h-22 rounded-xl bg-black/10 overflow-hidden shrink-0 flex items-center justify-center">
-              ${book.cover_data
-                ? `<img src="${book.cover_data}" alt="${book.title}" class="w-full h-full object-cover" />`
-                : `<i data-lucide="file-text" class="w-6 h-6 opacity-50"></i>`}
-            </div>
-            <div class="min-w-0 flex-1 space-y-1">
-              <h3 class="font-bold text-sm leading-snug line-clamp-2">${book.title}</h3>
-              <p class="text-[11px] opacity-70">Page ${book.last_page || 1} of ${book.total_pages || 1} (${pct}%)</p>
-              <div class="w-full h-1.5 rounded-full bg-black/10 overflow-hidden">
-                <div class="h-full accent-bg" style="width:${pct}%"></div>
-              </div>
-              <div class="flex items-center gap-0.5 pt-1" data-rate-id="${book.id}">
-                ${[1, 2, 3, 4, 5].map(star => `
-                  <button data-star="${star}" class="star-btn p-0.5">
-                    <i data-lucide="star" class="w-3.5 h-3.5 ${(book.rating || 0) >= star ? 'fill-amber-400 text-amber-400' : 'opacity-35'}"></i>
-                  </button>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center justify-between gap-2 pt-2 border-t border-black/10">
-            <button data-open-id="${book.id}" class="open-book-btn flex-1 py-2 px-3 rounded-xl accent-bg text-xs font-semibold flex items-center justify-center gap-1.5">
-              <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-              <span>${pct > 0 ? 'Continue Reading' : 'Read Book'}</span>
-            </button>
-            <button data-fav-id="${book.id}" class="fav-btn py-2 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 border ${
-              book.is_favorite
-                ? 'bg-rose-500/15 border-rose-500/40 text-rose-600'
-                : 'bg-black/5 hover:bg-black/10 border-black/10'
-            }">
-              <i data-lucide="heart" class="w-3.5 h-3.5 ${book.is_favorite ? 'fill-rose-500 text-rose-500' : 'opacity-65'}"></i>
-              <span>${book.is_favorite ? 'Favourited' : 'Favourite'}</span>
-            </button>
-            <button data-del-id="${book.id}" title="Delete Book" class="del-book-btn p-2 rounded-xl bg-black/10 hover:bg-rose-500/20 text-rose-600">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
-          </div>
-        `;
-
-        card.querySelector('.open-book-btn').addEventListener('click', () => openBookInReader(book));
-        card.querySelector('.fav-btn').addEventListener('click', () => toggleFavorite(book));
-        card.querySelectorAll('.star-btn').forEach(btn => {
-          btn.addEventListener('click', () => setBookRating(book, Number(btn.dataset.star)));
-        });
-        card.querySelector('.del-book-btn').addEventListener('click', () => deleteBook(book));
-        grid.appendChild(card);
-      });
-      lucide.createIcons();
-    }
-
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        activeFilter = btn.dataset.filter;
-        document.querySelectorAll('.filter-btn').forEach(b => {
-          b.className = 'filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold ' +
-            (b.dataset.filter === activeFilter ? 'accent-bg' : 'bg-black/10');
-        });
-        renderBooksGrid();
-      });
-    });
-
-    document.getElementById('sortSelect').addEventListener('change', (e) => {
-      activeSort = e.target.value;
-      renderBooksGrid();
-    });
-
-    async function toggleFavorite(book) {
-      book.is_favorite = !book.is_favorite;
-      book.updated_at = Date.now();
-      renderBooksGrid();
-      updateStats();
-      if (sb) {
-        await sb.from('user_books').update({ is_favorite: book.is_favorite, updated_at: book.updated_at }).eq('id', book.id);
-      }
-    }
-
-    async function setBookRating(book, rating) {
-      book.rating = book.rating === rating ? 0 : rating;
-      book.updated_at = Date.now();
-      renderBooksGrid();
-      if (sb) {
-        await sb.from('user_books').update({ rating: book.rating, updated_at: book.updated_at }).eq('id', book.id);
-      }
-    }
-
-    async function deleteBook(book) {
-      if (!confirm(`Remove "${book.title}" from your library?`)) return;
-      booksCache = booksCache.filter(b => b.id !== book.id);
-      renderBooksGrid();
-      updateStats();
-      if (sb) {
-        await sb.from('user_books').delete().eq('id', book.id);
-        if (book.storage_path) {
-          await sb.storage.from(BUCKET_NAME).remove([book.storage_path]);
-        }
-      }
-    }
-
-    // ==================== PDF UPLOAD & COVER EXTRACTION ====================
-    async function generatePdfCover(arrayBuffer) {
-      try {
-        const doc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
-        const page = await doc.getPage(1);
-        const vp = page.getViewport({ scale: 0.45 });
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.45 });
         const canvas = document.createElement('canvas');
-        canvas.width = vp.width;
-        canvas.height = vp.height;
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-        return canvas.toDataURL('image/jpeg', 0.72);
-      } catch {
-        return null;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        return canvas.toDataURL('image/jpeg', 0.8);
+      } catch (err) {
+        console.warn('Thumbnail generation fallback:', err);
+        return '';
       }
     }
 
-    async function handlePdfFiles(fileList) {
-      if (!currentUser) return;
-      const files = Array.from(fileList || []).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-      if (!files.length) return;
+    // =========================================================================
+    // 5. NAVIGATION & PROFILE & THEME MANAGEMENT
+    // =========================================================================
+    function switchScreen(screenName) {
+      ['screen-landing', 'screen-signin', 'screen-dashboard', 'screen-reader'].forEach((id) => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(screenName).classList.remove('hidden');
+    }
 
-      if (!isCloudConfigured || !sb) {
-        alert('Configure SUPABASE_URL and SUPABASE_ANON_KEY first to upload PDFs to cloud storage.');
-        return;
+    function applyTheme(bgHex, bubbleHex = '#ffffff') {
+      state.themeBg = bgHex;
+      state.themeBubble = bubbleHex;
+      document.documentElement.style.setProperty('--bg-primary', bgHex);
+      document.documentElement.style.setProperty('--bubble-bg', bubbleHex);
+      localStorage.setItem('ebookz_theme_bg', bgHex);
+      localStorage.setItem('ebookz_theme_bubble', bubbleHex);
+      document.getElementById('custom-theme-picker').value = bgHex;
+    }
+
+    function updateProfileUI() {
+      const nameClean = (state.username || 'ADAM').trim().toUpperCase();
+      state.username = nameClean;
+      localStorage.setItem('ebookz_username', nameClean);
+      document.getElementById('dashboard-username-input').value = nameClean;
+      document.getElementById('input-username').value = nameClean;
+
+      const img = document.getElementById('profile-avatar-img');
+      const fallback = document.getElementById('profile-avatar-fallback');
+      if (state.avatarDataUrl) {
+        img.src = state.avatarDataUrl;
+        img.classList.remove('hidden');
+        fallback.classList.add('hidden');
+      } else {
+        img.classList.add('hidden');
+        fallback.classList.remove('hidden');
+      }
+    }
+
+    // =========================================================================
+    // 6. DASHBOARD BOOK CARDS RENDERING (In Progress, Finish, Favourite)
+    // =========================================================================
+    function createBookCardElement(book, compact = false) {
+      const card = document.createElement('div');
+      card.className =
+        'group relative flex flex-col items-center bg-[#f4f7ff] border-4 border-[#1b1236] rounded-xl p-2 shadow-[4px_4px_0_#1b1236] hover:-translate-y-1 transition-transform';
+
+      // Cover Thumbnail (Clickable to Open Scrollable Reader)
+      const coverWrap = document.createElement('div');
+      coverWrap.className =
+        'relative w-full aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#1b1236] cursor-pointer bg-gradient-to-b from-[#bce8ff] via-[#e3f6ff] to-[#87b81d] flex items-center justify-center';
+      coverWrap.title = 'Click to read PDF';
+
+      if (book.thumbnail) {
+        const img = document.createElement('img');
+        img.src = book.thumbnail;
+        img.alt = book.title;
+        img.className = 'w-full h-full object-cover';
+        coverWrap.appendChild(img);
+      } else {
+        coverWrap.innerHTML = `<span class="font-arcade text-xs text-[#1b1236] text-center px-2">PDF</span>`;
       }
 
-      setSyncStatus('busy', 'Uploading PDF...');
+      // Hover "READ" badge
+      const hoverOverlay = document.createElement('div');
+      hoverOverlay.className =
+        'absolute inset-0 bg-[#18072e]/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2';
+      hoverOverlay.innerHTML = `
+        <span class="bg-[#ffe94d] text-[#18072e] font-arcade text-[10px] px-2.5 py-1 border-2 border-black">READ</span>
+        <span class="text-white font-pixel text-[11px]">${book.progressPct || 0}% read</span>
+      `;
+      coverWrap.appendChild(hoverOverlay);
+      coverWrap.addEventListener('click', () => openPdfReader(book.id));
+
+      // Quick Favourite Crown Toggle Button (Top-Left of Cover)
+      const favBtn = document.createElement('button');
+      favBtn.className = `absolute top-1.5 left-1.5 z-10 w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-xs cursor-pointer ${
+        book.isFavourite ? 'bg-[#ffd43b] text-black' : 'bg-white/85 text-gray-500 hover:text-black'
+      }`;
+      favBtn.title = book.isFavourite ? 'Favourite Book' : 'Set as Favourite Book';
+      favBtn.textContent = '👑';
+      favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFavouriteBook(book.id);
+      });
+
+      // Quick Finish Toggle Button (Top-Right of Cover)
+      const finBtn = document.createElement('button');
+      finBtn.className = `absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-xs cursor-pointer ${
+        book.isFinished ? 'bg-[#4dff94] text-black' : 'bg-white/85 text-gray-600 hover:text-black'
+      }`;
+      finBtn.title = book.isFinished ? 'Move back to In Progress' : 'Mark as Finished';
+      finBtn.textContent = '✓';
+      finBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFinishedBook(book.id);
+      });
+
+      // Editable PDF Name Input
+      const titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.value = book.title;
+      titleInput.title = 'Click to edit PDF name';
+      titleInput.className =
+        'mt-2 w-full text-center font-pixel text-xs font-bold text-[#111] bg-transparent border-b border-transparent hover:border-[#6722b8] focus:border-[#6722b8] focus:bg-white focus:outline-none px-1 truncate';
+      titleInput.addEventListener('change', async (e) => {
+        const newName = e.target.value.trim() || 'Untitled PDF';
+        book.title = newName;
+        e.target.value = newName;
+        await dbPut('books', book);
+        renderDashboardBooks();
+        showToast(`Renamed to "${newName}"`, '✎');
+      });
+
+      // 5-Heart Rating Bar
+      const starsRow = document.createElement('div');
+      starsRow.className = 'flex items-center justify-center gap-0.5 mt-1';
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('button');
+        star.type = 'button';
+        star.className = `text-xs cursor-pointer transition-transform hover:scale-125 ${
+          i <= (book.rating || 0) ? 'text-[#ff3b6b]' : 'text-gray-300'
+        }`;
+        star.textContent = '♥';
+        star.title = `Rate ${i}/5`;
+        star.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          book.rating = i;
+          await dbPut('books', book);
+          renderDashboardBooks();
+        });
+        starsRow.appendChild(star);
+      }
+
+      // Progress Bar
+      const progTrack = document.createElement('div');
+      progTrack.className = 'w-full h-2 bg-[#d7d0e8] rounded-full overflow-hidden mt-1.5 border border-[#1b1236]';
+      const progFill = document.createElement('div');
+      progFill.className = `h-full ${book.isFinished ? 'bg-[#37b24d]' : 'bg-[#7950f2]'}`;
+      progFill.style.width = `${book.isFinished ? 100 : book.progressPct || 0}%`;
+      progTrack.appendChild(progFill);
+
+      card.appendChild(coverWrap);
+      card.appendChild(favBtn);
+      card.appendChild(finBtn);
+      card.appendChild(titleInput);
+      card.appendChild(starsRow);
+      if (!compact) card.appendChild(progTrack);
+
+      return card;
+    }
+
+    function renderDashboardBooks() {
+      const inProgressBooks = state.books.filter((b) => !b.isFinished);
+      const finishedBooks = state.books.filter((b) => b.isFinished);
+      const favBook = state.books.find((b) => b.isFavourite) || state.books[0] || null;
+
+      document.getElementById('inprogress-count').textContent = `${inProgressBooks.length} book${inProgressBooks.length === 1 ? '' : 's'}`;
+      document.getElementById('finish-count').textContent = `${finishedBooks.length} book${finishedBooks.length === 1 ? '' : 's'}`;
+
+      // Render In Progress (up to 3 visible in carousel)
+      const progGrid = document.getElementById('inprogress-grid');
+      progGrid.innerHTML = '';
+      if (inProgressBooks.length === 0) {
+        progGrid.innerHTML = `
+          <div class="col-span-3 py-8 text-center font-pixel text-xs text-gray-500">
+            No books in progress. Click the Space Invader icon above to upload a PDF!
+          </div>`;
+      } else {
+        if (state.progressOffset >= inProgressBooks.length) state.progressOffset = 0;
+        const visible = [];
+        const count = Math.min(3, inProgressBooks.length);
+        for (let i = 0; i < count; i++) {
+          visible.push(inProgressBooks[(state.progressOffset + i) % inProgressBooks.length]);
+        }
+        visible.forEach((book) => progGrid.appendChild(createBookCardElement(book)));
+      }
+
+      // Render Finish (up to 3 visible in carousel)
+      const finGrid = document.getElementById('finish-grid');
+      finGrid.innerHTML = '';
+      if (finishedBooks.length === 0) {
+        finGrid.innerHTML = `
+          <div class="col-span-3 py-8 text-center font-pixel text-xs text-gray-500">
+            No finished books yet. Click ✓ on any book when done!
+          </div>`;
+      } else {
+        if (state.finishOffset >= finishedBooks.length) state.finishOffset = 0;
+        const visible = [];
+        const count = Math.min(3, finishedBooks.length);
+        for (let i = 0; i < count; i++) {
+          visible.push(finishedBooks[(state.finishOffset + i) % finishedBooks.length]);
+        }
+        visible.forEach((book) => finGrid.appendChild(createBookCardElement(book)));
+      }
+
+      // Render Favourite Book Slot
+      const favSlot = document.getElementById('favourite-book-slot');
+      favSlot.innerHTML = '';
+      if (favBook) {
+        favSlot.appendChild(createBookCardElement(favBook, true));
+      } else {
+        favSlot.innerHTML = `<div class="py-8 font-pixel text-xs text-gray-500">Upload a PDF to crown your favourite!</div>`;
+      }
+    }
+
+    async function toggleFavouriteBook(bookId) {
+      for (const b of state.books) {
+        b.isFavourite = b.id === bookId;
+        await dbPut('books', b);
+      }
+      renderDashboardBooks();
+      const chosen = state.books.find((b) => b.id === bookId);
+      if (chosen) showToast(`Crowned "${chosen.title}" as Favourite!`, '👑');
+    }
+
+    async function toggleFinishedBook(bookId) {
+      const book = state.books.find((b) => b.id === bookId);
+      if (!book) return;
+      book.isFinished = !book.isFinished;
+      if (book.isFinished) book.progressPct = 100;
+      await dbPut('books', book);
+      renderDashboardBooks();
+      showToast(book.isFinished ? `Moved "${book.title}" to Finish!` : `Moved "${book.title}" back to In Progress`, '✓');
+    }
+
+    // Handle PDF File Uploads
+    async function handlePdfUpload(files) {
+      if (!files || files.length === 0) return;
+      showToast('Loading PDF into library...', '👾');
+
       for (const file of files) {
-        try {
-          const buf = await file.arrayBuffer();
-          const doc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
-          const numPages = doc.numPages || 1;
-          const coverData = await generatePdfCover(buf);
-          const bookId = `book_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const storagePath = `${encodeURIComponent(currentUser.email)}/${bookId}_${safeName}`;
+        const buffer = await file.arrayBuffer();
+        const thumb = await generatePdfThumbnail(buffer);
+        const cleanTitle = file.name.replace(/\.pdf$/i, '');
 
-          const { error: upErr } = await sb.storage.from(BUCKET_NAME).upload(storagePath, file, {
-            contentType: 'application/pdf',
-            upsert: true
+        const newBook = {
+          id: 'book-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+          title: cleanTitle,
+          pdfData: buffer,
+          thumbnail: thumb,
+          rating: 0,
+          isFavourite: state.books.length === 0,
+          isFinished: false,
+          scrollTop: 0,
+          progressPct: 0,
+          filter: 'normal',
+          highlights: [],
+          createdAt: Date.now()
+        };
+
+        state.books.unshift(newBook);
+        await dbPut('books', newBook);
+      }
+
+      renderDashboardBooks();
+      showToast(`Uploaded ${files.length} PDF${files.length > 1 ? 's' : ''}!`, '★');
+    }
+
+    // =========================================================================
+    // 7. SCROLLABLE PDF READER + MARK LINE HIGHLIGHTER + FILTERS
+    // =========================================================================
+    async function openPdfReader(bookId) {
+      const book = state.books.find((b) => b.id === bookId);
+      if (!book) return;
+
+      state.activeBookId = book.id;
+      state.readingFilter = book.filter || 'normal';
+      switchScreen('screen-reader');
+
+      // Populate Header Controls
+      document.getElementById('reader-book-title').value = book.title;
+      updateReaderRatingUI(book);
+      updateReaderFavAndFinishUI(book);
+      applyReadingFilter(state.readingFilter);
+
+      const wrapper = document.getElementById('pdf-pages-wrapper');
+      wrapper.innerHTML = `<div class="py-20 font-arcade text-sm text-[#ffe94d]">LOADING PAGES...</div>`;
+
+      try {
+        const loadingTask = pdfjsLib.getDocument({ data: book.pdfData.slice(0) });
+        state.pdfDoc = await loadingTask.promise;
+        await renderAllPdfPages(book);
+
+        // Restore saved scroll position
+        const scrollContainer = document.getElementById('pdf-scroll-container');
+        requestAnimationFrame(() => {
+          scrollContainer.scrollTop = book.scrollTop || 0;
+          updateScrollMetrics();
+        });
+      } catch (err) {
+        console.error(err);
+        wrapper.innerHTML = `<div class="py-20 font-pixel text-red-400">Error rendering PDF file.</div>`;
+      }
+    }
+
+    async function renderAllPdfPages(book) {
+      const wrapper = document.getElementById('pdf-pages-wrapper');
+      wrapper.innerHTML = '';
+      document.getElementById('reader-zoom-label').textContent = `${Math.round((state.zoom / 1.15) * 100)}%`;
+
+      const numPages = state.pdfDoc.numPages;
+
+      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+        const page = await state.pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale: state.zoom });
+
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'pdf-page-wrapper';
+        pageDiv.dataset.pageNum = pageNum;
+        pageDiv.style.width = `${viewport.width}px`;
+        pageDiv.style.height = `${viewport.height}px`;
+        pageDiv.style.maxWidth = '100%';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        canvas.style.display = 'block';
+
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        pageDiv.appendChild(canvas);
+
+        // Render saved line highlights on this page
+        const pageHighlights = (book.highlights || []).filter((h) => h.pageNum === pageNum);
+        pageHighlights.forEach((hl) => {
+          pageDiv.appendChild(createHighlightMarkerElement(book, hl));
+        });
+
+        // Click on PDF page to place/move the "Last Sentence Read" marker line
+        pageDiv.addEventListener('click', async (e) => {
+          if (!state.markLineMode) return;
+          if (e.target.classList.contains('line-highlight-bar')) return;
+
+          const rect = pageDiv.getBoundingClientRect();
+          const yPct = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
+
+          // Demote previous "last" marker to a regular green note line or replace it
+          book.highlights = (book.highlights || []).filter((h) => !h.isLast);
+          book.highlights.push({
+            id: 'hl-' + Date.now(),
+            pageNum,
+            yPct,
+            isLast: true
           });
-          if (upErr) throw upErr;
 
-          const newBook = {
-            id: bookId,
-            user_email: currentUser.email,
-            title: file.name.replace(/\.pdf$/i, ''),
-            storage_path: storagePath,
-            cover_data: coverData,
-            total_pages: numPages,
-            last_page: 1,
-            is_favorite: false,
-            rating: 0,
-            marked_line: null,
-            updated_at: Date.now()
-          };
+          await dbPut('books', book);
+          // Re-render markers on all pages
+          document.querySelectorAll('.line-highlight-bar').forEach((el) => el.remove());
+          document.querySelectorAll('.pdf-page-wrapper').forEach((pDiv) => {
+            const pN = Number(pDiv.dataset.pageNum);
+            (book.highlights || [])
+              .filter((h) => h.pageNum === pN)
+              .forEach((hl) => pDiv.appendChild(createHighlightMarkerElement(book, hl)));
+          });
 
-          const { error: dbErr } = await sb.from('user_books').insert(newBook);
-          if (dbErr) throw dbErr;
-          booksCache.unshift(newBook);
-        } catch (err) {
-          console.error('Upload error:', err);
-          alert(`Failed to upload "${file.name}": ${err.message}`);
+          showToast(`Marked last read line on Page ${pageNum}!`, '🖍');
+        });
+
+        wrapper.appendChild(pageDiv);
+      }
+    }
+
+    function createHighlightMarkerElement(book, hl) {
+      const bar = document.createElement('div');
+      bar.className = `line-highlight-bar ${hl.isLast ? 'line-highlight-last' : 'line-highlight-note'}`;
+      bar.style.top = `${hl.yPct}%`;
+      bar.title = hl.isLast ? 'Last Sentence Read (Click to remove)' : 'Highlighted Line (Click to remove)';
+
+      if (hl.isLast) {
+        const tag = document.createElement('span');
+        tag.className =
+          'absolute -top-5 right-1 bg-[#ff3b8d] text-white font-pixel text-[10px] px-1.5 py-0.5 rounded shadow';
+        tag.textContent = '◀ LAST LINE READ';
+        bar.appendChild(tag);
+      }
+
+      bar.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        book.highlights = (book.highlights || []).filter((item) => item.id !== hl.id);
+        await dbPut('books', book);
+        bar.remove();
+        showToast('Removed line marker', '✕');
+      });
+
+      return bar;
+    }
+
+    function applyReadingFilter(filterKey) {
+      state.readingFilter = filterKey;
+      const wrapper = document.getElementById('pdf-pages-wrapper');
+      wrapper.classList.remove('filter-normal', 'filter-sepia', 'filter-dark', 'filter-amber', 'filter-contrast');
+      wrapper.classList.add(`filter-${filterKey}`);
+
+      document.querySelectorAll('.filter-chip').forEach((btn) => {
+        if (btn.dataset.filter === filterKey) {
+          btn.classList.add('ring-2', 'ring-[#ffe94d]', 'bg-[#6722b8]');
+        } else {
+          btn.classList.remove('ring-2', 'ring-[#ffe94d]', 'bg-[#6722b8]');
+        }
+      });
+
+      const book = state.books.find((b) => b.id === state.activeBookId);
+      if (book) {
+        book.filter = filterKey;
+        dbPut('books', book);
+      }
+    }
+
+    function updateReaderRatingUI(book) {
+      const container = document.getElementById('reader-rating-stars');
+      container.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `text-sm cursor-pointer hover:scale-125 transition-transform ${
+          i <= (book.rating || 0) ? 'text-[#ff3b6b]' : 'text-white/30'
+        }`;
+        btn.textContent = '♥';
+        btn.addEventListener('click', async () => {
+          book.rating = i;
+          await dbPut('books', book);
+          updateReaderRatingUI(book);
+          renderDashboardBooks();
+          showToast(`Rated ${i}/5 hearts!`, '♥');
+        });
+        container.appendChild(btn);
+      }
+    }
+
+    function updateReaderFavAndFinishUI(book) {
+      const favBtn = document.getElementById('btn-reader-fav');
+      favBtn.textContent = book.isFavourite ? '👑 FAVOURITE' : '👑 SET FAV';
+      favBtn.classList.toggle('bg-[#ffd43b]', !!book.isFavourite);
+      favBtn.classList.toggle('text-[#140529]', !!book.isFavourite);
+
+      const finBtn = document.getElementById('btn-reader-finish');
+      finBtn.textContent = book.isFinished ? '✓ FINISHED' : '✓ MARK FINISH';
+      finBtn.classList.toggle('bg-[#4dff94]', !!book.isFinished);
+      finBtn.classList.toggle('text-[#140529]', !!book.isFinished);
+    }
+
+    let scrollSaveTimeout = null;
+    function updateScrollMetrics() {
+      const container = document.getElementById('pdf-scroll-container');
+      const book = state.books.find((b) => b.id === state.activeBookId);
+      if (!container || !book || !state.pdfDoc) return;
+
+      const maxScroll = Math.max(1, container.scrollHeight - container.clientHeight);
+      const pct = Math.min(100, Math.max(0, Math.round((container.scrollTop / maxScroll) * 100)));
+      const approxPage = Math.min(
+        state.pdfDoc.numPages,
+        Math.max(1, Math.ceil(((container.scrollTop + container.clientHeight * 0.35) / container.scrollHeight) * state.pdfDoc.numPages))
+      );
+
+      document.getElementById('reader-page-indicator').textContent = `Page ${approxPage} of ${state.pdfDoc.numPages}`;
+      document.getElementById('reader-progress-bar').style.width = `${pct}%`;
+      document.getElementById('reader-percent-label').textContent = `${pct}%`;
+
+      book.scrollTop = container.scrollTop;
+      book.progressPct = pct;
+
+      clearTimeout(scrollSaveTimeout);
+      scrollSaveTimeout = setTimeout(() => {
+        dbPut('books', book);
+      }, 350);
+    }
+
+    // =========================================================================
+    // 8. BACKGROUND MUSIC PLAYER + VIDEO-TO-AUDIO CONVERTER
+    // =========================================================================
+    const audioEl = document.getElementById('bgm-audio-player');
+    let synthInterval = null;
+    let audioCtx = null;
+
+    // Gentle Chiptune Synth Fallback for Built-In Default Track ("Angel Bite - TXT")
+    function startChiptuneFallback() {
+      stopChiptuneFallback();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const notes = [329.63, 392.0, 493.88, 587.33, 493.88, 392.0, 329.63, 293.66];
+      let step = 0;
+
+      synthInterval = setInterval(() => {
+        if (!state.isPlaying) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+        const vol = parseFloat(document.getElementById('bgm-volume-slider').value || '0.5') * 0.12;
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.36);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.38);
+        step++;
+      }, 420);
+    }
+
+    function stopChiptuneFallback() {
+      if (synthInterval) {
+        clearInterval(synthInterval);
+        synthInterval = null;
+      }
+    }
+
+    function updateMusicUI() {
+      const track = state.tracks[state.currentTrackIndex];
+      const title = track ? track.title : 'Angel Bite - TXT';
+      document.getElementById('mini-track-title').textContent = title;
+      document.getElementById('modal-now-playing').textContent = title;
+
+      const iconPlay = document.getElementById('mini-icon-play');
+      const iconPause = document.getElementById('mini-icon-pause');
+      const headerVinyl = document.getElementById('header-vinyl-svg');
+      const readerBgmStatus = document.getElementById('reader-music-status');
+
+      if (state.isPlaying) {
+        iconPlay.classList.add('hidden');
+        iconPause.classList.remove('hidden');
+        headerVinyl.classList.add('vinyl-spin');
+        readerBgmStatus.textContent = 'PLAYING';
+      } else {
+        iconPlay.classList.remove('hidden');
+        iconPause.classList.add('hidden');
+        headerVinyl.classList.remove('vinyl-spin');
+        readerBgmStatus.textContent = 'BGM';
+      }
+
+      renderPlaylistModal();
+    }
+
+    function playCurrentTrack() {
+      const track = state.tracks[state.currentTrackIndex];
+      state.isPlaying = true;
+
+      if (track && track.blob) {
+        stopChiptuneFallback();
+        if (!track.objectUrl) {
+          track.objectUrl = URL.createObjectURL(track.blob);
+        }
+        if (audioEl.src !== track.objectUrl) {
+          audioEl.src = track.objectUrl;
+        }
+        audioEl.volume = parseFloat(document.getElementById('bgm-volume-slider').value || '0.65');
+        audioEl.play().catch(() => {});
+      } else {
+        audioEl.pause();
+        startChiptuneFallback();
+      }
+      updateMusicUI();
+    }
+
+    function pauseCurrentTrack() {
+      state.isPlaying = false;
+      audioEl.pause();
+      stopChiptuneFallback();
+      updateMusicUI();
+    }
+
+    function togglePlayPause() {
+      if (state.isPlaying) {
+        pauseCurrentTrack();
+      } else {
+        playCurrentTrack();
+      }
+    }
+
+    function nextTrack() {
+      if (state.tracks.length === 0) return;
+      state.currentTrackIndex = (state.currentTrackIndex + 1) % state.tracks.length;
+      playCurrentTrack();
+    }
+
+    function prevTrack() {
+      if (state.tracks.length === 0) return;
+      state.currentTrackIndex = (state.currentTrackIndex - 1 + state.tracks.length) % state.tracks.length;
+      playCurrentTrack();
+    }
+
+    audioEl.addEventListener('ended', () => {
+      nextTrack();
+    });
+
+    // Convert AudioBuffer to standard PCM WAV Blob
+    function audioBufferToWavBlob(audioBuffer) {
+      const numChannels = Math.min(2, audioBuffer.numberOfChannels);
+      const sampleRate = audioBuffer.sampleRate;
+      const length = audioBuffer.length * numChannels * 2;
+      const buffer = new ArrayBuffer(44 + length);
+      const view = new DataView(buffer);
+
+      const writeStr = (offset, str) => {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      };
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + length, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numChannels * 2, true);
+      view.setUint16(32, numChannels * 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, length, true);
+
+      let offset = 44;
+      const channels = [];
+      for (let c = 0; c < numChannels; c++) channels.push(audioBuffer.getChannelData(c));
+
+      for (let i = 0; i < audioBuffer.length; i++) {
+        for (let c = 0; c < numChannels; c++) {
+          const sample = Math.max(-1, Math.min(1, channels[c][i]));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          offset += 2;
         }
       }
-      setSyncStatus('ok', 'Synced');
-      renderBooksGrid();
-      updateStats();
+
+      return new Blob([buffer], { type: 'audio/wav' });
     }
 
-    document.getElementById('pdfUploadInput').addEventListener('change', (e) => {
-      handlePdfFiles(e.target.files);
-      e.target.value = '';
-    });
+    // Handle Audio & Video Uploads with In-Browser Video-to-Audio Converter
+    async function handleMediaUpload(files) {
+      if (!files || files.length === 0) return;
 
-    const dropZone = document.getElementById('dropZone');
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('border-black/60');
-    });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-black/60'));
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('border-black/60');
-      handlePdfFiles(e.dataTransfer.files);
-    });
+      const convBox = document.getElementById('converter-status-box');
+      const convLabel = document.getElementById('converter-label');
+      const convPct = document.getElementById('converter-percent');
+      const convBar = document.getElementById('converter-bar');
 
-    // ==================== CONTINUOUS SCROLL READER ====================
-    async function openBookInReader(book) {
-      if (!sb || !book.storage_path) return;
-      activeBook = book;
-      renderedPages.clear();
-      markLineMode = false;
-      document.getElementById('markLineBanner').classList.add('hidden');
-      document.getElementById('libraryView').classList.add('hidden');
-      document.getElementById('readerView').classList.remove('hidden');
-      document.getElementById('readerBookTitle').textContent = book.title;
+      for (const file of files) {
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(file.name);
+        const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
 
-      const container = document.getElementById('readerScrollContainer');
-      container.innerHTML = '<p class="text-center text-sm opacity-70 py-10">Loading PDF from cloud...</p>';
+        if (isVideo) {
+          convBox.classList.remove('hidden');
+          convLabel.textContent = `Converting Video → Audio: ${cleanTitle}...`;
+          convPct.textContent = '25%';
+          convBar.style.width = '25%';
 
-      const { data: pubData } = sb.storage.from(BUCKET_NAME).getPublicUrl(book.storage_path);
-      pdfDoc = await pdfjsLib.getDocument(pubData.publicUrl).promise;
-      totalPages = pdfDoc.numPages;
-      book.total_pages = totalPages;
+          try {
+            const arrayBuf = await file.arrayBuffer();
+            convPct.textContent = '55%';
+            convBar.style.width = '55%';
 
-      container.innerHTML = '';
-      for (let p = 1; p <= totalPages; p++) {
-        const shell = document.createElement('div');
-        shell.className = 'pdf-page-shell rounded-xl mx-auto flex items-center justify-center';
-        shell.dataset.pageNumber = p;
-        shell.style.minHeight = '640px';
-        shell.innerHTML = `<span class="text-xs opacity-50">Page ${p}</span>`;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const decodedAudio = await ctx.decodeAudioData(arrayBuf);
+            convPct.textContent = '85%';
+            convBar.style.width = '85%';
 
-        shell.addEventListener('click', (e) => {
-          if (!markLineMode) return;
-          const rect = shell.getBoundingClientRect();
-          const ratioY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-          saveMarkedLine(p, ratioY);
-          markLineMode = false;
-          document.getElementById('markLineBanner').classList.add('hidden');
-        });
+            const wavBlob = audioBufferToWavBlob(decodedAudio);
+            convPct.textContent = '100%';
+            convBar.style.width = '100%';
 
-        container.appendChild(shell);
-      }
-
-      setupPageObserver();
-      updateMarkedLineControls();
-      const targetPage = Math.min(totalPages, Math.max(1, book.last_page || 1));
-      setReaderProgressUI(targetPage);
-      const targetEl = container.querySelector(`[data-page-number="${targetPage}"]`);
-      if (targetEl) targetEl.scrollIntoView({ behavior: 'instant', block: 'start' });
-      lucide.createIcons();
-    }
-
-    async function renderSinglePage(pageNum) {
-      if (!pdfDoc || renderedPages.has(pageNum)) return;
-      const shell = document.querySelector(`#readerScrollContainer [data-page-number="${pageNum}"]`);
-      if (!shell) return;
-      renderedPages.add(pageNum);
-
-      const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: zoomScale });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.className = 'w-full h-auto block';
-
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-      shell.style.minHeight = 'auto';
-      shell.style.maxWidth = `${viewport.width}px`;
-      shell.innerHTML = '';
-      shell.appendChild(canvas);
-      renderMarkedLineOnShell(shell, pageNum);
-    }
-
-    function renderMarkedLineOnShell(shell, pageNum) {
-      shell.querySelectorAll('.marked-line-overlay').forEach(el => el.remove());
-      if (!activeBook?.marked_line || activeBook.marked_line.page !== pageNum) return;
-      const marker = document.createElement('div');
-      marker.className = 'marked-line-overlay';
-      marker.style.top = `${Math.round(activeBook.marked_line.ratioY * shell.clientHeight)}px`;
-      shell.appendChild(marker);
-    }
-
-    function setupPageObserver() {
-      if (pageObserver) pageObserver.disconnect();
-      pageObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          const pNum = Number(entry.target.dataset.pageNumber);
-          if (entry.isIntersecting) {
-            renderSinglePage(pNum);
-            if (entry.intersectionRatio > 0.35 && currentPage !== pNum) {
-              setReaderProgressUI(pNum);
-              persistReadingProgress(pNum);
-            }
+            const track = {
+              id: 'track-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+              title: `${cleanTitle} (Converted Audio)`,
+              blob: wavBlob,
+              isConvertedVideo: true
+            };
+            state.tracks.push(track);
+            await dbPut('tracks', { id: track.id, title: track.title, blob: track.blob, isConvertedVideo: true });
+            state.currentTrackIndex = state.tracks.length - 1;
+            playCurrentTrack();
+            showToast(`Converted "${cleanTitle}" to WAV Audio!`, '♫');
+          } catch (err) {
+            // Fallback: HTML5 Audio element can natively play audio track from MP4/WebM blobs
+            const track = {
+              id: 'track-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+              title: `${cleanTitle} (Video Audio)`,
+              blob: file,
+              isConvertedVideo: true
+            };
+            state.tracks.push(track);
+            await dbPut('tracks', { id: track.id, title: track.title, blob: track.blob, isConvertedVideo: true });
+            state.currentTrackIndex = state.tracks.length - 1;
+            playCurrentTrack();
+            showToast(`Added "${cleanTitle}" audio to playlist!`, '♫');
+          } finally {
+            setTimeout(() => {
+              convBox.classList.add('hidden');
+              convBar.style.width = '0%';
+            }, 900);
           }
-        });
-      }, {
-        rootMargin: '250px 0px',
-        threshold: [0, 0.35]
-      });
-
-      document.querySelectorAll('#readerScrollContainer .pdf-page-shell').forEach(el => pageObserver.observe(el));
-    }
-
-    function setReaderProgressUI(pageNum) {
-      currentPage = pageNum;
-      const pct = Math.min(100, Math.round((pageNum / Math.max(1, totalPages)) * 100));
-      document.getElementById('pageIndicator').textContent = `Page ${pageNum} of ${totalPages}`;
-      document.getElementById('readerProgressBar').style.width = `${pct}%`;
-      document.getElementById('readerPercent').textContent = `${pct}%`;
-    }
-
-    async function persistReadingProgress(pageNum) {
-      if (!activeBook || !sb) return;
-      activeBook.last_page = pageNum;
-      activeBook.total_pages = totalPages;
-      activeBook.updated_at = Date.now();
-      await sb.from('user_books').update({
-        last_page: pageNum,
-        total_pages: totalPages,
-        updated_at: activeBook.updated_at
-      }).eq('id', activeBook.id);
-    }
-
-    async function saveMarkedLine(pageNum, ratioY) {
-      if (!activeBook) return;
-      activeBook.marked_line = { page: pageNum, ratioY };
-      activeBook.updated_at = Date.now();
-      updateMarkedLineControls();
-      document.querySelectorAll('#readerScrollContainer .pdf-page-shell').forEach(shell => {
-        renderMarkedLineOnShell(shell, Number(shell.dataset.pageNumber));
-      });
-      if (sb) {
-        await sb.from('user_books').update({
-          marked_line: activeBook.marked_line,
-          updated_at: activeBook.updated_at
-        }).eq('id', activeBook.id);
+        } else {
+          // Standard Audio File
+          const track = {
+            id: 'track-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+            title: cleanTitle,
+            blob: file,
+            isConvertedVideo: false
+          };
+          state.tracks.push(track);
+          await dbPut('tracks', { id: track.id, title: track.title, blob: track.blob, isConvertedVideo: false });
+          state.currentTrackIndex = state.tracks.length - 1;
+          playCurrentTrack();
+          showToast(`Added "${cleanTitle}" to playlist!`, '♫');
+        }
       }
+
+      renderPlaylistModal();
     }
 
-    function updateMarkedLineControls() {
-      const hasMark = Boolean(activeBook?.marked_line);
-      document.getElementById('jumpMarkedLineBtn').classList.toggle('hidden', !hasMark);
-      document.getElementById('clearMarkedLineBtn').classList.toggle('hidden', !hasMark);
-    }
-
-    document.getElementById('toggleMarkLineBtn').addEventListener('click', () => {
-      markLineMode = !markLineMode;
-      document.getElementById('markLineBanner').classList.toggle('hidden', !markLineMode);
-    });
-
-    document.getElementById('jumpMarkedLineBtn').addEventListener('click', async () => {
-      if (!activeBook?.marked_line) return;
-      const p = activeBook.marked_line.page;
-      await renderSinglePage(p);
-      const shell = document.querySelector(`#readerScrollContainer [data-page-number="${p}"]`);
-      if (shell) shell.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-
-    document.getElementById('clearMarkedLineBtn').addEventListener('click', async () => {
-      if (!activeBook) return;
-      activeBook.marked_line = null;
-      updateMarkedLineControls();
-      document.querySelectorAll('.marked-line-overlay').forEach(el => el.remove());
-      if (sb) {
-        await sb.from('user_books').update({ marked_line: null }).eq('id', activeBook.id);
-      }
-    });
-
-    async function reRenderAllAtZoom() {
-      if (!activeBook) return;
-      document.getElementById('zoomLabel').textContent = `${Math.round(zoomScale * 100)}%`;
-      renderedPages.clear();
-      document.querySelectorAll('#readerScrollContainer .pdf-page-shell').forEach(shell => {
-        shell.style.maxWidth = '';
-        shell.style.minHeight = '640px';
-        shell.innerHTML = `<span class="text-xs opacity-50">Page ${shell.dataset.pageNumber}</span>`;
-      });
-      setupPageObserver();
-      const currentShell = document.querySelector(`#readerScrollContainer [data-page-number="${currentPage}"]`);
-      if (currentShell) currentShell.scrollIntoView({ behavior: 'instant', block: 'start' });
-    }
-
-    document.getElementById('zoomInBtn').addEventListener('click', () => {
-      zoomScale = Math.min(2.2, Number((zoomScale + 0.15).toFixed(2)));
-      reRenderAllAtZoom();
-    });
-
-    document.getElementById('zoomOutBtn').addEventListener('click', () => {
-      zoomScale = Math.max(0.7, Number((zoomScale - 0.15).toFixed(2)));
-      reRenderAllAtZoom();
-    });
-
-    document.getElementById('backToLibraryBtn').addEventListener('click', async () => {
-      if (pageObserver) pageObserver.disconnect();
-      activeBook = null;
-      pdfDoc = null;
-      await enterLibrary();
-    });
-
-    // ==================== SONG PLAYLIST ====================
-    const audioPlayer = document.getElementById('bgAudioPlayer');
-    let playlistTracks = [];
-    let currentTrackIndex = -1;
-    let currentAudioUrl = null;
-
-    function getPlaylistKey() {
-      return currentUser ? `playlist_${currentUser.email}` : 'playlist_guest';
-    }
-
-    async function persistPlaylist() {
-      await saveMediaItem(getPlaylistKey(), playlistTracks);
-    }
-
-    function renderPlaylistUI() {
-      const container = document.getElementById('playlistContainer');
-      const nameLabel = document.getElementById('musicTrackName');
+    function renderPlaylistModal() {
+      const container = document.getElementById('playlist-items-container');
+      if (!container) return;
       container.innerHTML = '';
 
-      if (!playlistTracks.length) {
-        nameLabel.textContent = 'No songs in playlist yet';
-        container.innerHTML = `<p class="text-xs opacity-60 text-center py-4">Upload one or more audio files to build your playlist.</p>`;
-        return;
-      }
-
-      const activeTrack = playlistTracks[currentTrackIndex] || playlistTracks[0];
-      nameLabel.textContent = activeTrack ? activeTrack.name : 'Select a song';
-
-      playlistTracks.forEach((track, idx) => {
-        const isCurrent = idx === currentTrackIndex;
+      state.tracks.forEach((track, idx) => {
+        const isCurrent = idx === state.currentTrackIndex;
         const row = document.createElement('div');
-        row.className = `flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition ${
-          isCurrent ? 'accent-bg font-semibold' : 'bg-black/5 hover:bg-black/10'
+        row.className = `flex items-center justify-between gap-2 p-2.5 border-2 border-[#111] ${
+          isCurrent ? 'bg-[#ffe94d] font-bold' : 'bg-white'
         }`;
-        row.innerHTML = `
-          <button type="button" class="select-track-btn flex-1 text-left truncate">
-            ${idx + 1}. ${track.name}
-          </button>
-          <button type="button" title="Remove Song" class="remove-track-btn p-1 rounded ${
-            isCurrent ? 'hover:bg-white/20' : 'opacity-65 hover:opacity-100'
-          }">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
-        `;
 
-        row.querySelector('.select-track-btn').addEventListener('click', () => {
-          playTrackAt(idx, true);
+        const left = document.createElement('button');
+        left.className = 'flex items-center gap-2 text-left flex-1 truncate cursor-pointer font-pixel text-xs';
+        left.innerHTML = `<span>${isCurrent && state.isPlaying ? '▶' : '♪'}</span><span class="truncate">${track.title}</span>`;
+        left.addEventListener('click', () => {
+          state.currentTrackIndex = idx;
+          playCurrentTrack();
         });
 
-        row.querySelector('.remove-track-btn').addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const removingCurrent = idx === currentTrackIndex;
-          playlistTracks.splice(idx, 1);
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center gap-1.5 shrink-0';
 
-          if (!playlistTracks.length) {
-            currentTrackIndex = -1;
-            audioPlayer.pause();
-            audioPlayer.removeAttribute('src');
-            if (currentAudioUrl) {
-              URL.revokeObjectURL(currentAudioUrl);
-              currentAudioUrl = null;
-            }
-          } else if (removingCurrent) {
-            const nextIdx = idx % playlistTracks.length;
-            playTrackAt(nextIdx, !audioPlayer.paused);
-          } else if (idx < currentTrackIndex) {
-            currentTrackIndex--;
-          }
+        // Download Converted WAV if available
+        if (track.blob && track.isConvertedVideo) {
+          const dlBtn = document.createElement('a');
+          if (!track.objectUrl) track.objectUrl = URL.createObjectURL(track.blob);
+          dlBtn.href = track.objectUrl;
+          dlBtn.download = `${track.title}.wav`;
+          dlBtn.className = 'win95-btn px-2 py-0.5 font-pixel text-[10px] cursor-pointer';
+          dlBtn.textContent = 'WAV ↓';
+          dlBtn.title = 'Download converted audio file';
+          actions.appendChild(dlBtn);
+        }
 
-          await persistPlaylist();
-          renderPlaylistUI();
-          syncPlayPauseUI();
-        });
+        // Remove Track (if not the default built-in track)
+        if (track.id !== 'track-default-txt') {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'win95-btn px-2 py-0.5 font-pixel text-[10px] text-red-700 cursor-pointer';
+          delBtn.textContent = '✕';
+          delBtn.title = 'Remove track';
+          delBtn.addEventListener('click', async () => {
+            state.tracks.splice(idx, 1);
+            await dbDelete('tracks', track.id);
+            if (state.currentTrackIndex >= state.tracks.length) state.currentTrackIndex = 0;
+            updateMusicUI();
+          });
+          actions.appendChild(delBtn);
+        }
 
+        row.appendChild(left);
+        row.appendChild(actions);
         container.appendChild(row);
       });
-      lucide.createIcons();
     }
 
-    function playTrackAt(index, shouldPlay = true) {
-      if (!playlistTracks.length) return;
-      currentTrackIndex = ((index % playlistTracks.length) + playlistTracks.length) % playlistTracks.length;
-      const track = playlistTracks[currentTrackIndex];
+    // =========================================================================
+    // 9. EVENT LISTENERS & BOOTSTRAP
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      renderPixelMatrixLogo();
+      applyTheme(state.themeBg, state.themeBubble);
+      updateProfileUI();
 
-      if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
-      currentAudioUrl = URL.createObjectURL(track.blob);
-      audioPlayer.src = currentAudioUrl;
-      audioPlayer.volume = Number(document.getElementById('musicVolumeInput').value);
-      audioPlayer.loop = playlistTracks.length === 1 && document.getElementById('musicLoopCheckbox').checked;
-
-      renderPlaylistUI();
-      if (shouldPlay) {
-        audioPlayer.play().catch(() => {});
-      }
-      syncPlayPauseUI();
-    }
-
-    async function loadSavedMusic() {
-      if (!currentUser) return;
-      const savedList = await getMediaItem(getPlaylistKey());
-      if (Array.isArray(savedList) && savedList.length > 0) {
-        playlistTracks = savedList;
-        playTrackAt(0, false);
+      // Initialize IndexedDB & Load Saved Books + Tracks
+      await openDB();
+      const savedBooks = await dbGetAll('books');
+      if (savedBooks.length > 0) {
+        state.books = savedBooks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       } else {
-        const legacyTrack = await getMediaItem(`music_${currentUser.email}`);
-        if (legacyTrack?.blob) {
-          playlistTracks = [{ id: 'song_' + Date.now(), name: legacyTrack.name || 'Uploaded Audio', blob: legacyTrack.blob }];
-          await persistPlaylist();
-          playTrackAt(0, false);
-        } else {
-          playlistTracks = [];
-          currentTrackIndex = -1;
-          renderPlaylistUI();
-        }
+        const welcome = await createDefaultWelcomeBook();
+        state.books = [welcome];
       }
-    }
 
-    document.getElementById('musicUploadInput').addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(f.name));
-      if (!files.length || !currentUser) return;
+      const savedTracks = await dbGetAll('tracks');
+      state.tracks = [
+        { id: 'track-default-txt', title: 'Angel Bite - TXT', blob: null, isConvertedVideo: false },
+        ...savedTracks
+      ];
 
-      const hadNoTracks = playlistTracks.length === 0;
-      files.forEach((file, i) => {
-        playlistTracks.push({
-          id: 'song_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 6),
-          name: file.name.replace(/\.[^/.]+$/, ''),
-          blob: file
+      renderDashboardBooks();
+      updateMusicUI();
+
+      // Screen 1 -> Screen 2
+      document.getElementById('btn-open-signin').addEventListener('click', () => {
+        switchScreen('screen-signin');
+      });
+
+      // Screen 2 ("Yes" -> Dashboard, "No" -> Landing)
+      document.getElementById('btn-signin-yes').addEventListener('click', () => {
+        const typedName = document.getElementById('input-username').value.trim();
+        if (typedName) state.username = typedName.toUpperCase();
+        updateProfileUI();
+        switchScreen('screen-dashboard');
+        showToast(`Welcome back, ${state.username}!`, '👾');
+      });
+
+      document.getElementById('btn-signin-no').addEventListener('click', () => {
+        switchScreen('screen-landing');
+      });
+
+      // Dashboard Profile Photo Upload
+      document.getElementById('upload-avatar-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.avatarDataUrl = reader.result;
+          localStorage.setItem('ebookz_avatar', state.avatarDataUrl);
+          updateProfileUI();
+          showToast('Profile photo updated!', '★');
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Dashboard Editable Username
+      document.getElementById('dashboard-username-input').addEventListener('change', (e) => {
+        state.username = e.target.value.trim().toUpperCase() || 'ADAM';
+        updateProfileUI();
+        showToast(`Player name set to ${state.username}`, '★');
+      });
+
+      // PDF Upload Input
+      document.getElementById('upload-pdf-input').addEventListener('change', (e) => {
+        handlePdfUpload(e.target.files);
+        e.target.value = '';
+      });
+
+      // Carousel Arrows (< and >)
+      document.getElementById('btn-prev-progress').addEventListener('click', () => {
+        const count = state.books.filter((b) => !b.isFinished).length;
+        if (count > 0) {
+          state.progressOffset = (state.progressOffset - 1 + count) % count;
+          renderDashboardBooks();
+        }
+      });
+
+      document.getElementById('btn-next-progress').addEventListener('click', () => {
+        const count = state.books.filter((b) => !b.isFinished).length;
+        if (count > 0) {
+          state.progressOffset = (state.progressOffset + 1) % count;
+          renderDashboardBooks();
+        }
+      });
+
+      document.getElementById('btn-prev-finish').addEventListener('click', () => {
+        const count = state.books.filter((b) => b.isFinished).length;
+        if (count > 0) {
+          state.finishOffset = (state.finishOffset - 1 + count) % count;
+          renderDashboardBooks();
+        }
+      });
+
+      document.getElementById('btn-next-finish').addEventListener('click', () => {
+        const count = state.books.filter((b) => b.isFinished).length;
+        if (count > 0) {
+          state.finishOffset = (state.finishOffset + 1) % count;
+          renderDashboardBooks();
+        }
+      });
+
+      // Theme Modal Controls
+      document.getElementById('btn-open-theme-modal').addEventListener('click', () => {
+        document.getElementById('modal-theme').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-theme').addEventListener('click', () => {
+        document.getElementById('modal-theme').classList.add('hidden');
+      });
+      document.querySelectorAll('.theme-preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          applyTheme(btn.dataset.themeBg, btn.dataset.themeBubble);
+          showToast('Theme colour updated!', '🎨');
         });
       });
-
-      await persistPlaylist();
-      if (hadNoTracks) {
-        playTrackAt(0, true);
-      } else {
-        renderPlaylistUI();
-      }
-      e.target.value = '';
-    });
-
-    function syncPlayPauseUI() {
-      const playing = !audioPlayer.paused;
-      document.getElementById('playPauseLabel').textContent = playing ? 'Pause' : 'Play';
-      document.getElementById('playPauseIcon').setAttribute('data-lucide', playing ? 'pause' : 'play');
-      lucide.createIcons();
-    }
-
-    document.getElementById('playPauseMusicBtn').addEventListener('click', async () => {
-      if (!playlistTracks.length) return alert('Add at least one song to your playlist first!');
-      if (!audioPlayer.src) {
-        playTrackAt(0, true);
-        return;
-      }
-      if (audioPlayer.paused) await audioPlayer.play().catch(() => {});
-      else audioPlayer.pause();
-      syncPlayPauseUI();
-    });
-
-    document.getElementById('prevTrackBtn').addEventListener('click', () => {
-      if (!playlistTracks.length) return;
-      playTrackAt(currentTrackIndex - 1, true);
-    });
-
-    document.getElementById('nextTrackBtn').addEventListener('click', () => {
-      if (!playlistTracks.length) return;
-      playTrackAt(currentTrackIndex + 1, true);
-    });
-
-    document.getElementById('musicVolumeInput').addEventListener('input', (e) => {
-      audioPlayer.volume = Number(e.target.value);
-    });
-
-    document.getElementById('musicLoopCheckbox').addEventListener('change', (e) => {
-      if (playlistTracks.length === 1) {
-        audioPlayer.loop = e.target.checked;
-      }
-    });
-
-    audioPlayer.addEventListener('ended', () => {
-      if (!playlistTracks.length) return;
-      const isLastTrack = currentTrackIndex === playlistTracks.length - 1;
-      if (!isLastTrack || document.getElementById('musicLoopCheckbox').checked) {
-        playTrackAt(currentTrackIndex + 1, true);
-      } else {
-        syncPlayPauseUI();
-      }
-    });
-
-    audioPlayer.addEventListener('play', syncPlayPauseUI);
-    audioPlayer.addEventListener('pause', syncPlayPauseUI);
-
-    // ==================== MODALS & COLOURS ====================
-    const openMusicModal = () => {
-      renderPlaylistUI();
-      syncPlayPauseUI();
-      document.getElementById('musicModal').classList.remove('hidden');
-      lucide.createIcons();
-    };
-    document.getElementById('openMusicBtn').addEventListener('click', openMusicModal);
-    document.getElementById('readerMusicBtn').addEventListener('click', openMusicModal);
-    document.getElementById('closeMusicModalBtn').addEventListener('click', () => {
-      document.getElementById('musicModal').classList.add('hidden');
-    });
-
-    document.getElementById('openColorsBtn').addEventListener('click', () => {
-      document.getElementById('colorsModal').classList.remove('hidden');
-    });
-    document.getElementById('closeColorsModalBtn').addEventListener('click', () => {
-      document.getElementById('colorsModal').classList.add('hidden');
-    });
-
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const preset = PRESETS[btn.dataset.preset];
-        if (!preset) return;
-        applyThemeColors(preset);
-        await saveUserSettingsToCloud(preset);
+      document.getElementById('custom-theme-picker').addEventListener('input', (e) => {
+        applyTheme(e.target.value, '#ffffff');
       });
-    });
 
-    ['colorBgApp', 'colorBgCard', 'colorTextMain', 'colorAccent', 'colorPaper'].forEach(id => {
-      document.getElementById(id).addEventListener('input', () => {
-        applyThemeColors(currentPickerColors());
+      // Music & Video Converter Modal Controls
+      document.getElementById('btn-open-music-modal').addEventListener('click', () => {
+        document.getElementById('modal-music').classList.remove('hidden');
       });
-    });
+      document.getElementById('btn-open-playlist-sub').addEventListener('click', () => {
+        document.getElementById('modal-music').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-music').addEventListener('click', () => {
+        document.getElementById('modal-music').classList.add('hidden');
+      });
+      document.getElementById('upload-media-input').addEventListener('change', (e) => {
+        handleMediaUpload(e.target.files);
+        e.target.value = '';
+      });
 
-    document.getElementById('doneColorModalBtn').addEventListener('click', async () => {
-      const colors = currentPickerColors();
-      applyThemeColors(colors);
-      await saveUserSettingsToCloud(colors);
-      document.getElementById('colorsModal').classList.add('hidden');
-    });
+      document.getElementById('mini-play-pause').addEventListener('click', togglePlayPause);
+      document.getElementById('mini-prev-track').addEventListener('click', prevTrack);
+      document.getElementById('mini-next-track').addEventListener('click', nextTrack);
+      document.getElementById('modal-btn-play').addEventListener('click', togglePlayPause);
+      document.getElementById('modal-btn-prev').addEventListener('click', prevTrack);
+      document.getElementById('modal-btn-next').addEventListener('click', nextTrack);
+      document.getElementById('btn-reader-music-toggle').addEventListener('click', togglePlayPause);
 
-    // ==================== INIT ====================
-    applyThemeColors(PRESETS.sepia);
-    if (currentUser?.email) {
-      enterLibrary();
-    } else {
-      showAuthScreen();
-    }
+      document.getElementById('bgm-volume-slider').addEventListener('input', (e) => {
+        audioEl.volume = parseFloat(e.target.value);
+      });
+
+      // PDF Reader Controls
+      document.getElementById('btn-reader-back').addEventListener('click', () => {
+        renderDashboardBooks();
+        switchScreen('screen-dashboard');
+      });
+
+      document.getElementById('reader-book-title').addEventListener('change', async (e) => {
+        const book = state.books.find((b) => b.id === state.activeBookId);
+        if (!book) return;
+        book.title = e.target.value.trim() || 'Untitled PDF';
+        e.target.value = book.title;
+        await dbPut('books', book);
+        showToast(`Renamed PDF to "${book.title}"`, '✎');
+      });
+
+      document.getElementById('btn-reader-fav').addEventListener('click', async () => {
+        if (!state.activeBookId) return;
+        await toggleFavouriteBook(state.activeBookId);
+        const book = state.books.find((b) => b.id === state.activeBookId);
+        if (book) updateReaderFavAndFinishUI(book);
+      });
+
+      document.getElementById('btn-reader-finish').addEventListener('click', async () => {
+        if (!state.activeBookId) return;
+        await toggleFinishedBook(state.activeBookId);
+        const book = state.books.find((b) => b.id === state.activeBookId);
+        if (book) updateReaderFavAndFinishUI(book);
+      });
+
+      document.getElementById('btn-zoom-in').addEventListener('click', async () => {
+        const book = state.books.find((b) => b.id === state.activeBookId);
+        if (!book || !state.pdfDoc) return;
+        state.zoom = Math.min(2.2, state.zoom + 0.15);
+        await renderAllPdfPages(book);
+      });
+
+      document.getElementById('btn-zoom-out').addEventListener('click', async () => {
+        const book = state.books.find((b) => b.id === state.activeBookId);
+        if (!book || !state.pdfDoc) return;
+        state.zoom = Math.max(0.65, state.zoom - 0.15);
+        await renderAllPdfPages(book);
+      });
+
+      document.getElementById('btn-toggle-markline').addEventListener('click', () => {
+        state.markLineMode = !state.markLineMode;
+        const btn = document.getElementById('btn-toggle-markline');
+        const lbl = document.getElementById('markline-mode-label');
+        lbl.textContent = `Mark Last Line: ${state.markLineMode ? 'ON' : 'OFF'}`;
+        btn.classList.toggle('bg-[#ffe94d]', state.markLineMode);
+        btn.classList.toggle('text-[#140529]', state.markLineMode);
+        btn.classList.toggle('bg-[#2e0c4d]', !state.markLineMode);
+        btn.classList.toggle('text-white', !state.markLineMode);
+      });
+
+      document.getElementById('btn-jump-lastline').addEventListener('click', () => {
+        const marker = document.querySelector('.line-highlight-last');
+        if (marker) {
+          marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          showToast('Jumped to your last marked line!', '🖍');
+        } else {
+          showToast('Click any sentence on a page to mark your last line!', 'ℹ');
+        }
+      });
+
+      document.getElementById('btn-clear-lines').addEventListener('click', async () => {
+        const book = state.books.find((b) => b.id === state.activeBookId);
+        if (!book) return;
+        book.highlights = [];
+        await dbPut('books', book);
+        document.querySelectorAll('.line-highlight-bar').forEach((el) => el.remove());
+        showToast('Cleared all line markers', '✓');
+      });
+
+      document.querySelectorAll('.filter-chip').forEach((btn) => {
+        btn.addEventListener('click', () => applyReadingFilter(btn.dataset.filter));
+      });
+
+      document.getElementById('pdf-scroll-container').addEventListener('scroll', updateScrollMetrics);
+    });
   </script>
 </body>
 </html>
