@@ -4,2497 +4,1747 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>E-BOOKZ — Retro Pixel E-Book Reader</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Pixel Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
-  <!-- PDF.js -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <!-- jsPDF for generating the built-in Welcome Guide PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
   <style>
     :root {
-      --bg-primary: #441082;
-      --bg-secondary: #2e085c;
-      --bg-accent: #6722b8;
+      --bg-primary: #350e6e;
+      --bg-secondary: #22064d;
+      --accent-yellow: #ffe838;
+      --accent-pink: #ff8ad8;
+      --accent-cyan: #24d8ff;
+      --accent-green: #69c938;
+      --pixel-border: #111111;
       --bubble-bg: #ffffff;
-      --bubble-border: #0a0612;
-      --bubble-text: #111111;
-      --gold-text: #ffe94d;
-      --gold-shadow: #9b59ff;
-      --btn-peach: #ffcb85;
-      --btn-peach-border: #2a183b;
+      --win-gray: #c0c0c0;
+      --win-blue: #0000a8;
     }
 
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
       image-rendering: pixelated;
     }
 
     body {
-      margin: 0;
-      padding: 0;
+      font-family: 'Press Start 2P', monospace;
       background-color: var(--bg-primary);
-      font-family: 'Silkscreen', monospace;
-      color: #ffffff;
+      color: #111;
+      min-height: 100vh;
       overflow-x: hidden;
       transition: background-color 0.35s ease;
     }
 
-    .font-arcade {
-      font-family: 'Press Start 2P', monospace;
-    }
-
-    .font-pixel {
-      font-family: 'Silkscreen', monospace;
-    }
-
-    .font-vt {
-      font-family: 'VT323', monospace;
-    }
-
-    /* Glowing yellow arcade text from Mockup 1 */
-    .arcade-subtitle {
-      font-family: 'Press Start 2P', monospace;
-      color: #fff05a;
-      text-shadow:
-        0 0 8px rgba(255, 238, 80, 0.85),
-        0 0 18px rgba(255, 190, 40, 0.55),
-        3px 3px 0px #2b0954;
-      letter-spacing: 3px;
-    }
-
-    /* Pixel-stepped Speech Bubble matching Mockup 3 */
-    .pixel-bubble {
-      position: relative;
-      background: var(--bubble-bg);
-      color: var(--bubble-text);
-      border: 6px solid var(--bubble-border);
-      box-shadow:
-        -6px 0 0 0 var(--bubble-bg),
-        6px 0 0 0 var(--bubble-bg),
-        0 -6px 0 0 var(--bubble-bg),
-        0 6px 0 0 var(--bubble-bg),
-        -10px 0 0 0 var(--bubble-border),
-        10px 0 0 0 var(--bubble-border),
-        0 -10px 0 0 var(--bubble-border),
-        0 10px 0 0 var(--bubble-border),
-        0 14px 0 4px rgba(0, 0, 0, 0.32);
-      border-radius: 14px;
-    }
-
-    /* Speech bubble tails */
-    .tail-top-left::before {
-      content: '';
-      position: absolute;
-      top: -6px;
-      left: -26px;
-      width: 24px;
-      height: 18px;
-      background: var(--bubble-bg);
-      border-top: 6px solid var(--bubble-border);
-      border-left: 6px solid var(--bubble-border);
-      clip-path: polygon(0 0, 100% 0, 100% 100%);
-    }
-
-    .tail-top-right::before {
-      content: '';
-      position: absolute;
-      top: 28px;
-      right: -26px;
-      width: 24px;
-      height: 22px;
-      background: var(--bubble-bg);
-      border-top: 6px solid var(--bubble-border);
-      border-right: 6px solid var(--bubble-border);
-      clip-path: polygon(0 0, 100% 0, 0 100%);
-    }
-
-    .tail-left-mid::before {
-      content: '';
-      position: absolute;
-      top: 45%;
-      left: -22px;
-      width: 20px;
-      height: 22px;
-      background: var(--bubble-bg);
-      border-left: 6px solid var(--bubble-border);
-      border-bottom: 6px solid var(--bubble-border);
-      clip-path: polygon(100% 0, 0 50%, 100% 100%);
-    }
-
-    /* Classic Windows 95 / RPG Bevel Dialog from Mockup 2 */
-    .win95-box {
-      background: #c3c3c3;
-      border-top: 4px solid #ffffff;
-      border-left: 4px solid #ffffff;
-      border-right: 4px solid #262626;
-      border-bottom: 4px solid #262626;
-      box-shadow: 0 0 0 4px #0b0714, 10px 10px 0px rgba(0, 0, 0, 0.45);
-    }
-
-    .win95-titlebar {
-      background: linear-gradient(90deg, #0000a8 0%, #1616e0 50%, #00009c 100%);
-      border-bottom: 4px solid #111111;
-      text-shadow: 2px 2px 0px #000000;
-    }
-
-    .win95-btn {
-      background: #c3c3c3;
-      color: #111111;
-      border-top: 4px solid #ffffff;
-      border-left: 4px solid #ffffff;
-      border-right: 4px solid #3a3a3a;
-      border-bottom: 4px solid #3a3a3a;
-      box-shadow: 0 0 0 3px #0b0714;
-      transition: transform 0.08s steps(2);
-    }
-
-    .win95-btn:active {
-      border-top: 4px solid #3a3a3a;
-      border-left: 4px solid #3a3a3a;
-      border-right: 4px solid #ffffff;
-      border-bottom: 4px solid #ffffff;
-      transform: translate(2px, 2px);
-    }
-
-    /* Health Bar Input (Mockup 2 & 3) */
-    .rpg-bar-input {
-      background: #8a7f96;
-      border: 4px solid #2d2638;
-      box-shadow: inset 4px 4px 0px #5e5569;
-      position: relative;
-    }
-
-    /* Dithered halftone gradient background (Mockup 2) */
-    .dither-bg {
-      background-color: var(--bg-primary);
-      background-image:
-        radial-gradient(rgba(165, 95, 255, 0.35) 2px, transparent 2px),
-        radial-gradient(rgba(165, 95, 255, 0.35) 2px, transparent 2px);
-      background-size: 8px 8px;
-      background-position: 0 0, 4px 4px;
-    }
-
-    /* SIGN IN Button from Mockup 1 */
-    .sign-in-pill {
-      background: #ffd18c;
-      color: #ffffff;
-      border: 5px solid #261438;
-      border-radius: 22px;
-      box-shadow:
-        inset 0 -6px 0 #e69d45,
-        inset 0 5px 0 #ffebb8,
-        0 6px 0 #1b0d29;
-      text-shadow: 2px 2px 0 #b86f24;
-      transition: transform 0.1s steps(2);
-    }
-
-    .sign-in-pill:hover {
-      transform: scale(1.04);
-      background: #ffdc9e;
-    }
-
-    .sign-in-pill:active {
-      transform: translateY(4px);
-    }
-
-    /* Animations */
-    @keyframes floatSlow {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-6px); }
-    }
-
-    @keyframes bounceSprite {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-4px); }
-    }
-
-    @keyframes spinVinyl {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .animate-float {
-      animation: floatSlow 3.2s steps(4) infinite;
-    }
-
-    .animate-sprite {
-      animation: bounceSprite 0.7s steps(2) infinite;
-    }
-
-    .vinyl-spin {
-      animation: spinVinyl 4s linear infinite;
-    }
-
-    /* PDF Reader Filters */
-    .filter-normal {
-      filter: none;
-    }
-    .filter-sepia {
-      filter: sepia(0.42) brightness(0.95) contrast(1.03);
-    }
-    .filter-dark {
-      filter: invert(0.9) hue-rotate(180deg) contrast(1.05);
-    }
-    .filter-amber {
-      filter: sepia(0.65) saturate(1.4) brightness(0.9) hue-rotate(-10deg);
-    }
-    .filter-contrast {
-      filter: contrast(1.35) brightness(1.02);
-    }
-
-    /* Custom Pixel Scrollbar */
+    /* Pixel Scrollbar */
     ::-webkit-scrollbar {
       width: 12px;
       height: 12px;
     }
     ::-webkit-scrollbar-track {
-      background: #1d0738;
-      border-left: 2px solid #000;
+      background: var(--bg-secondary);
+      border-left: 3px solid #111;
     }
     ::-webkit-scrollbar-thumb {
-      background: #ffcb6b;
-      border: 2px solid #1d0738;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #ffe59e;
+      background: var(--accent-yellow);
+      border: 3px solid #111;
     }
 
-    /* Highlight Line Marker inside PDF Page */
-    .pdf-page-wrapper {
+    .screen {
+      display: none;
+      width: 100%;
+      min-height: 100vh;
       position: relative;
-      margin: 0 auto 24px auto;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
-      border: 4px solid #120624;
-      background: #ffffff;
-      user-select: text;
+    }
+    .screen.active {
+      display: flex;
+      flex-direction: column;
     }
 
-    .line-highlight-bar {
+    /* =========================================================
+       SCREEN 1: LANDING PAGE
+    ========================================================= */
+    #screen-landing {
+      justify-content: space-between;
+      align-items: center;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.08), transparent 65%), var(--bg-primary);
+    }
+
+    .landing-sky {
+      width: 100%;
+      max-width: 1180px;
+      padding-top: 42px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 5;
+    }
+
+    .cloud {
       position: absolute;
-      left: 4%;
-      width: 92%;
-      height: 26px;
-      transform: translateY(-50%);
-      pointer-events: auto;
+      top: 22px;
+      pointer-events: none;
+    }
+    .cloud-left { left: 10px; }
+    .cloud-right { right: 10px; }
+
+    .subtitle-top {
+      font-size: clamp(14px, 2vw, 22px);
+      color: var(--accent-yellow);
+      text-shadow: 3px 3px 0 #1b053d, 0 0 12px rgba(255, 232, 56, 0.55);
+      letter-spacing: 2px;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    /* Pixel-Grid Dot-Matrix Banner >E-BOOKZ< */
+    .matrix-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(4px, 1vw, 10px);
+      margin-bottom: 18px;
+      padding: 6px;
+      flex-wrap: wrap;
+    }
+
+    .matrix-glyph {
+      display: grid;
+      grid-template-columns: repeat(5, clamp(5px, 1.05vw, 11px));
+      grid-template-rows: repeat(7, clamp(5px, 1.05vw, 11px));
+      gap: 2px;
+      background: #9f7be8;
+      padding: 4px;
+      box-shadow: 0 5px 0 #260854, 0 0 18px rgba(255, 232, 56, 0.25);
+    }
+
+    .matrix-glyph.narrow {
+      grid-template-columns: repeat(4, clamp(5px, 1.05vw, 11px));
+    }
+
+    .m-cell {
+      width: 100%;
+      height: 100%;
+      background: #6741b5;
+      border: 1px solid #3c1e78;
+    }
+    .m-cell.on {
+      background: var(--accent-yellow);
+      border-color: #c99a00;
+      box-shadow: inset 1px 1px 0 #fff8a6;
+    }
+
+    .byline {
+      font-size: clamp(11px, 1.4vw, 16px);
+      color: var(--accent-yellow);
+      text-shadow: 2px 2px 0 #1b053d;
+      margin-bottom: 18px;
+      letter-spacing: 2px;
+    }
+
+    /* Sign In Pixel Pill Button */
+    .sign-in-wrapper {
+      position: relative;
+      z-index: 10;
+      margin-top: 6px;
+    }
+
+    .btn-signin {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(14px, 1.8vw, 22px);
+      color: #fff;
+      text-shadow: 3px 3px 0 #995500;
+      background: linear-gradient(180deg, #ffdd78 0%, #f5b342 65%, #d98a1c 100%);
+      border: 4px solid #111;
+      padding: 16px 34px;
       cursor: pointer;
-      transition: all 0.15s ease;
+      position: relative;
+      box-shadow:
+        -6px 0 0 0 #55b887,
+        6px 0 0 0 #55b887,
+        0 6px 0 0 #111,
+        0 10px 18px rgba(0, 0, 0, 0.45);
+      transition: transform 0.1s steps(2);
+    }
+    .btn-signin:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.07);
+    }
+    .btn-signin:active {
+      transform: translateY(3px);
+    }
+
+    /* Pixel Cityscape & Bus Scene */
+    .landing-scene {
+      width: 100%;
+      height: 290px;
+      position: relative;
+      margin-top: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    .landing-scene svg {
+      width: 100%;
+      max-width: 1360px;
+      height: 100%;
+      display: block;
+    }
+
+    /* =========================================================
+       SCREEN 2: WIN95 / RPG SIGN-IN MODAL
+    ========================================================= */
+    #screen-login {
+      justify-content: center;
+      align-items: center;
+      background-color: var(--bg-primary);
+      background-image:
+        radial-gradient(rgba(162, 114, 245, 0.32) 2px, transparent 2px),
+        radial-gradient(rgba(162, 114, 245, 0.32) 2px, transparent 2px);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+      overflow: hidden;
+    }
+
+    .login-dialog-stack {
+      position: relative;
+      z-index: 10;
+      width: min(92vw, 490px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .win95-window {
+      width: 100%;
+      background: var(--win-gray);
+      border: 4px solid #111;
+      box-shadow:
+        inset 4px 4px 0 #ffffff,
+        inset -4px -4px 0 #7a7a7a,
+        0 10px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    .win95-titlebar {
+      background: linear-gradient(90deg, #00009c, #1836d1);
+      color: #fff;
+      text-align: center;
+      padding: 12px 10px;
+      font-size: clamp(13px, 1.8vw, 18px);
+      letter-spacing: 1px;
+      border-bottom: 4px solid #111;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .win95-body {
+      padding: 22px 28px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .rpg-field-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rpg-label {
+      font-size: 13px;
+      color: #fff;
+      text-shadow:
+        -2px -2px 0 #111,
+         2px -2px 0 #111,
+        -2px  2px 0 #111,
+         2px  2px 0 #111;
+      letter-spacing: 1px;
+    }
+
+    .heart-bar-wrapper {
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .pixel-heart-icon {
+      width: 44px;
+      height: 40px;
+      flex-shrink: 0;
+      z-index: 3;
+      margin-right: -10px;
+    }
+
+    .heart-input-track {
+      flex: 1;
+      height: 30px;
+      background: #9c8ba8;
+      border: 4px solid #2b2238;
+      border-radius: 0 12px 12px 0;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 3px 0 rgba(0,0,0,0.25);
+    }
+
+    .heart-fill {
+      width: 34px;
+      height: 100%;
+      background: #f05a30;
+      border-right: 3px solid #2b2238;
+      flex-shrink: 0;
+      transition: width 0.25s ease;
+    }
+
+    .heart-input {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 0 10px;
+      text-shadow: 1px 1px 0 #111;
+    }
+    .heart-input::placeholder {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 9px;
+    }
+
+    .win95-buttons {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 6px;
+    }
+
+    .btn-win95 {
+      font-family: 'VT323', monospace;
+      font-size: 28px;
+      font-weight: bold;
+      color: #111;
+      background: var(--win-gray);
+      border: 4px solid #111;
+      padding: 8px 16px;
+      cursor: pointer;
+      box-shadow:
+        inset 4px 4px 0 #ffffff,
+        inset -4px -4px 0 #7a7a7a;
+    }
+    .btn-win95:hover {
+      background: #d4d4d4;
+    }
+    .btn-win95:active {
+      box-shadow:
+        inset -3px -3px 0 #ffffff,
+        inset 3px 3px 0 #7a7a7a;
+      transform: translateY(2px);
+    }
+
+    .login-characters-under {
+      margin-top: -6px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .login-floor {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 68px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       SCREEN 3: MAIN DASHBOARD
+    ========================================================= */
+    #screen-dashboard {
+      background-color: var(--bg-primary);
+      padding: 16px 22px 64px;
+      justify-content: flex-start;
+      overflow-x: hidden;
+    }
+
+    /* Top HUD Bar */
+    .hud-header {
+      width: 100%;
+      max-width: 1320px;
+      margin: 0 auto 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      position: relative;
       z-index: 20;
     }
 
-    .line-highlight-last {
-      background: rgba(255, 238, 0, 0.45);
-      border-top: 2px dashed #ff3b8d;
-      border-bottom: 3px solid #ff3b8d;
-      box-shadow: 0 0 14px rgba(255, 238, 0, 0.7);
+    .profile-hud {
+      display: flex;
+      align-items: center;
+      gap: 0;
     }
 
-    .line-highlight-note {
-      background: rgba(72, 255, 168, 0.36);
-      border-bottom: 2px solid #00b862;
+    .avatar-ring {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 4px solid var(--accent-yellow);
+      background: #2b1254;
+      box-shadow: 0 0 0 4px #111;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      z-index: 3;
+      flex-shrink: 0;
+    }
+    .avatar-ring img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: auto;
+    }
+    .avatar-ring:hover::after {
+      content: 'EDIT';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      color: var(--accent-yellow);
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    /* Text layer for selectable text on PDF.js */
-    .textLayer {
+    .rpg-name-bar {
+      display: flex;
+      align-items: center;
+      height: 36px;
+      margin-left: -8px;
+      background: #776c8a;
+      border: 4px solid #2b2238;
+      border-radius: 0 10px 10px 0;
+      padding-right: 12px;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .rpg-name-fill {
+      height: 100%;
+      background: var(--accent-green);
+      border-right: 4px solid #2b2238;
+      display: flex;
+      align-items: center;
+      padding: 0 16px 0 18px;
+    }
+
+    #hud-username {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 0 #1f4d10;
+      width: 120px;
+      text-transform: uppercase;
+    }
+
+    /* Top-Right Action Icons */
+    .hud-actions {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .hud-action-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: #fff;
+      font-family: 'VT323', monospace;
+      font-size: 15px;
+      text-shadow: 2px 2px 0 #111;
+      transition: transform 0.12s steps(2);
+    }
+    .hud-action-btn:hover {
+      transform: translateY(-3px);
+      color: var(--accent-yellow);
+    }
+
+    .hud-icon-box {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Dashboard Main Two-Column Grid */
+    .dashboard-grid {
+      width: 100%;
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.55fr 0.95fr;
+      gap: 28px;
+      align-items: start;
+      position: relative;
+      z-index: 10;
+    }
+
+    @media (max-width: 960px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .left-shelves, .right-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    /* Pixel Speech Bubble Container */
+    .pixel-bubble {
+      background: var(--bubble-bg);
+      border: 6px solid #111;
+      box-shadow:
+        0 8px 0 #111,
+        inset 0 0 0 4px #f2f2f2;
+      padding: 20px 22px 22px;
+      position: relative;
+      color: #111;
+    }
+
+    /* Speech Bubble Pointers */
+    .bubble-tail-left::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: -24px;
+      width: 0;
+      height: 0;
+      border-top: 12px solid #111;
+      border-left: 24px solid transparent;
+    }
+    .bubble-tail-left::after {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: -13px;
+      width: 0;
+      height: 0;
+      border-top: 7px solid #fff;
+      border-left: 14px solid transparent;
+    }
+
+    .bubble-tail-right::before {
+      content: '';
+      position: absolute;
+      top: 22px;
+      right: -24px;
+      width: 0;
+      height: 0;
+      border-top: 12px solid #111;
+      border-right: 24px solid transparent;
+    }
+    .bubble-tail-right::after {
+      content: '';
+      position: absolute;
+      top: 26px;
+      right: -13px;
+      width: 0;
+      height: 0;
+      border-top: 7px solid #fff;
+      border-right: 14px solid transparent;
+    }
+
+    .bubble-tail-music::before {
+      content: '';
+      position: absolute;
+      top: 24px;
+      left: -24px;
+      width: 0;
+      height: 0;
+      border-top: 12px solid #111;
+      border-left: 24px solid transparent;
+    }
+    .bubble-tail-music::after {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: -13px;
+      width: 0;
+      height: 0;
+      border-top: 7px solid #fff;
+      border-left: 14px solid transparent;
+    }
+
+    /* Running Hero Sprite sitting on top of In Progress */
+    .runner-sprite {
+      position: absolute;
+      top: -54px;
+      left: 52%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    /* Cat Sprite sitting on top of Favourite Book */
+    .cat-sprite {
+      position: absolute;
+      top: -38px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .bubble-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .bubble-title {
+      font-family: 'VT323', monospace;
+      font-size: 30px;
+      font-weight: bold;
+      color: #111;
+      letter-spacing: 1px;
+    }
+
+    .shelf-carousel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .shelf-arrow {
+      background: transparent;
+      border: none;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      color: #111;
+      cursor: pointer;
+      padding: 8px 4px;
+      user-select: none;
+    }
+    .shelf-arrow:hover {
+      color: var(--bg-primary);
+      transform: scale(1.15);
+    }
+
+    .cards-row {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      min-height: 190px;
+    }
+
+    @media (max-width: 640px) {
+      .cards-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Book Card Styling */
+    .book-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .book-cover-box {
+      width: 100%;
+      aspect-ratio: 3 / 3.7;
+      border-radius: 14px;
+      border: 3px solid #222;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      background: linear-gradient(180deg, #b8e4ff 0%, #e6f6ff 62%, #74a626 62%, #63941c 100%);
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+      transition: transform 0.15s steps(2);
+    }
+    .book-cover-box:hover {
+      transform: translateY(-4px);
+    }
+
+    .book-cover-box canvas,
+    .book-cover-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Placeholder landscape art inside empty/default book card */
+    .placeholder-art {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    .placeholder-cloud {
+      position: absolute;
+      top: 18%;
+      left: 34%;
+      width: 44%;
+      height: 20%;
+      background: #fff;
+      border-radius: 20px;
+    }
+    .placeholder-cloud::before {
+      content: '';
+      position: absolute;
+      top: -45%;
+      left: 18%;
+      width: 52%;
+      height: 95%;
+      background: #fff;
+      border-radius: 50%;
+    }
+    .placeholder-hill-back {
+      position: absolute;
+      bottom: 0;
+      right: -15%;
+      width: 85%;
+      height: 36%;
+      background: #8cc232;
+      border-radius: 50% 50% 0 0;
+    }
+    .placeholder-hill-front {
+      position: absolute;
+      bottom: 0;
+      left: -12%;
+      width: 88%;
+      height: 44%;
+      background: #6fa31e;
+      border-radius: 50% 65% 0 0;
+    }
+
+    .book-badge-fav {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(17, 17, 17, 0.82);
+      color: var(--accent-yellow);
+      border: 2px solid var(--accent-yellow);
+      font-size: 11px;
+      padding: 3px 5px;
+      cursor: pointer;
+      z-index: 4;
+    }
+
+    .book-badge-del {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(185, 28, 28, 0.92);
+      color: #fff;
+      border: 2px solid #111;
+      font-size: 10px;
+      padding: 3px 5px;
+      cursor: pointer;
+      z-index: 4;
+      box-shadow: 1px 1px 0 #111;
+    }
+    .book-badge-del:hover {
+      background: #ef4444;
+      transform: scale(1.08);
+    }
+
+    .btn-card-fav {
+      width: 100%;
+      font-family: 'VT323', monospace;
+      font-size: 15px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border: 2px solid #111;
+      background: #f3f4f6;
+      color: #111;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      box-shadow: 2px 2px 0 #111;
+    }
+    .btn-card-fav:hover {
+      background: #fef08a;
+    }
+    .btn-card-fav.is-fav {
+      background: var(--accent-yellow);
+      color: #111;
+    }
+
+    .book-progress-pill {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(17, 17, 17, 0.85);
+      color: #fff;
+      font-family: 'VT323', monospace;
+      font-size: 14px;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .book-title-input {
+      width: 100%;
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      color: #111;
+      background: transparent;
+      border: 2px dashed transparent;
+      padding: 2px 4px;
+      outline: none;
+    }
+    .book-title-input:hover,
+    .book-title-input:focus {
+      border-color: #111;
+      background: #fffbe0;
+    }
+
+    .book-stars {
+      display: flex;
+      gap: 2px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .star-btn {
+      color: #ccc;
+      transition: color 0.1s;
+    }
+    .star-btn.filled {
+      color: #f59e0b;
+      text-shadow: 1px 1px 0 #111;
+    }
+
+    /* Right Top: Favourite Book Bubble */
+    .fav-bubble-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .crown-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .fav-card-slot {
+      width: 155px;
+    }
+
+    /* Right Bottom: Music Player Bubble + Girl & Dog Sprites */
+    .music-area-wrapper {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      position: relative;
+    }
+
+    .girl-dog-companion {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: -14px;
+    }
+
+    .music-bubble {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 16px 14px;
+    }
+
+    .music-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 10px 0 12px;
+    }
+
+    .music-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 4px solid #111;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      box-shadow: 0 3px 0 #111;
+    }
+    .music-btn.play-main {
+      width: 56px;
+      height: 56px;
+      font-size: 16px;
+    }
+    .music-btn:hover {
+      background: var(--accent-yellow);
+    }
+    .music-btn:active {
+      transform: translateY(2px);
+    }
+
+    .track-title-display {
+      font-family: 'VT323', monospace;
+      font-size: 22px;
+      font-weight: bold;
+      color: #111;
+      width: 100%;
+      text-align: center;
+      background: transparent;
+      border: 2px dashed transparent;
+      outline: none;
+      padding: 2px 6px;
+      cursor: text;
+    }
+    .track-title-display:hover,
+    .track-title-display:focus {
+      border-color: #111;
+      background: #fffbe0;
+    }
+
+    .playlist-toggle-link {
+      margin-top: 6px;
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      color: #4b1d96;
+      text-decoration: underline;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+
+    /* Dashboard Decorative Side Buildings & Bottom Brick Ground */
+    .dash-building-left {
+      position: fixed;
+      left: 0;
+      bottom: 42px;
+      width: 78px;
+      height: 360px;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.92;
+    }
+    .dash-building-right {
+      position: fixed;
+      right: 0;
+      bottom: 42px;
+      width: 78px;
+      height: 360px;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.92;
+    }
+    .dash-brick-floor {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 44px;
+      background-color: #b56576;
+      background-image:
+        linear-gradient(335deg, #e5989b 23px, transparent 23px),
+        linear-gradient(155deg, #e5989b 23px, transparent 23px),
+        linear-gradient(335deg, #e5989b 23px, transparent 23px),
+        linear-gradient(155deg, #e5989b 23px, transparent 23px);
+      background-size: 58px 28px;
+      background-position: 0 2px, 4px 16px, 29px 16px, 34px 2px;
+      border-top: 4px solid #111;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       MODALS (THEME, MUSIC/VIDEO CONVERTER, PDF READER)
+    ========================================================= */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 4, 28, 0.82);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .pixel-modal {
+      background: var(--win-gray);
+      border: 4px solid #111;
+      box-shadow:
+        inset 4px 4px 0 #fff,
+        inset -4px -4px 0 #7a7a7a,
+        0 12px 0 rgba(0, 0, 0, 0.5);
+      width: min(94vw, 560px);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .pixel-modal-header {
+      background: var(--win-blue);
+      color: #fff;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      border-bottom: 4px solid #111;
+    }
+
+    .btn-close-x {
+      background: var(--win-gray);
+      border: 3px solid #111;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 4px 7px;
+      cursor: pointer;
+      box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #7a7a7a;
+    }
+
+    .pixel-modal-body {
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+    }
+
+    .theme-swatches {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .swatch-btn {
+      padding: 12px 8px;
+      border: 4px solid #111;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      text-shadow: 2px 2px 0 #111;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .playlist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      border: 3px solid #111;
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .playlist-item.active-track {
+      background: #fff7b8;
+      border-color: #d97706;
+    }
+
+    .playlist-title-input {
+      flex: 1;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      font-weight: bold;
+      color: #111;
+      background: transparent;
+      border: 2px dashed transparent;
+      padding: 2px 6px;
+      outline: none;
+    }
+    .playlist-title-input:hover,
+    .playlist-title-input:focus {
+      border-color: #111;
+      background: #ffffff;
+    }
+
+    .mini-pixel-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 6px 10px;
+      border: 3px solid #111;
+      background: var(--accent-yellow);
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #111;
+    }
+    .mini-pixel-btn:hover {
+      filter: brightness(1.06);
+    }
+
+    /* =========================================================
+       CONTINUOUS SCROLLABLE PDF READER OVERLAY
+    ========================================================= */
+    #reader-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #1a0b36;
+      z-index: 200;
+      flex-direction: column;
+    }
+    #reader-overlay.open {
+      display: flex;
+    }
+
+    .reader-toolbar {
+      background: var(--win-gray);
+      border-bottom: 4px solid #111;
+      padding: 10px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .reader-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .reader-title-edit {
+      font-family: 'VT323', monospace;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border: 3px solid #111;
+      background: #fff;
+      width: 220px;
+    }
+
+    .tool-chip {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 7px 10px;
+      border: 3px solid #111;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #111;
+    }
+    .tool-chip.active {
+      background: var(--accent-yellow);
+    }
+    .tool-chip.finish-btn {
+      background: var(--accent-green);
+      color: #fff;
+      text-shadow: 1px 1px 0 #111;
+    }
+
+    .reader-scroll-viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 22px;
+      position: relative;
+      background: #231442;
+      transition: filter 0.25s ease, background-color 0.25s ease;
+    }
+
+    /* Reading Filters */
+    .reader-scroll-viewport.filter-normal {
+      filter: none;
+      background: #231442;
+    }
+    .reader-scroll-viewport.filter-sepia {
+      filter: sepia(0.55) brightness(0.96);
+      background: #3b2d1f;
+    }
+    .reader-scroll-viewport.filter-warm {
+      filter: sepia(0.28) saturate(1.15) contrast(0.96);
+      background: #2e2236;
+    }
+    .reader-scroll-viewport.filter-night {
+      filter: invert(0.88) hue-rotate(180deg);
+      background: #e8e8e8;
+    }
+    .reader-scroll-viewport.filter-highcontrast {
+      filter: contrast(1.3) grayscale(0.2);
+      background: #111;
+    }
+
+    .pdf-page-wrapper {
+      position: relative;
+      background: #fff;
+      border: 4px solid #111;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+      max-width: 100%;
+    }
+
+    .pdf-page-wrapper canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Interactive Text Layer for Sentence/Line Highlighting */
+    .pdf-text-layer {
       position: absolute;
       inset: 0;
       overflow: hidden;
-      opacity: 0.25;
-      line-height: 1.0;
-      z-index: 10;
+      line-height: 1;
     }
-    .textLayer span {
-      color: transparent;
+
+    .pdf-text-span {
       position: absolute;
+      color: transparent;
       white-space: pre;
-      cursor: text;
+      cursor: pointer;
       transform-origin: 0% 0%;
+      border-radius: 2px;
+      transition: background-color 0.12s;
     }
-    .textLayer ::selection {
-      background: rgba(255, 0, 128, 0.6);
+
+    .reader-scroll-viewport.mark-mode .pdf-text-span:hover {
+      background-color: rgba(255, 232, 56, 0.45);
+      outline: 2px dashed #d97706;
+    }
+
+    .pdf-text-span.last-read-highlight {
+      background-color: rgba(255, 232, 56, 0.62) !important;
+      border-bottom: 3px solid #ef4444;
+      box-shadow: 0 0 8px rgba(255, 232, 56, 0.9);
+    }
+
+    /* Custom Horizontal Bookmark Line Marker */
+    .last-line-bookmark-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: rgba(255, 59, 92, 0.85);
+      border-top: 2px solid #111;
+      border-bottom: 2px solid #111;
+      pointer-events: none;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+    }
+    .last-line-bookmark-tag {
+      background: #ff3b5c;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 3px 6px;
+      border: 2px solid #111;
+      margin-left: 8px;
+      transform: translateY(-12px);
+      text-shadow: 1px 1px 0 #111;
+    }
+
+    .toast-banner {
+      position: fixed;
+      bottom: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: var(--accent-yellow);
+      border: 3px solid var(--accent-yellow);
+      padding: 10px 18px;
+      font-size: 10px;
+      z-index: 500;
+      display: none;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
     }
   </style>
 </head>
-<body class="min-h-screen select-none">
+<body>
 
-  <!-- TOAST NOTIFICATION BANNER -->
-  <div id="toast-box" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] hidden pointer-events-none">
-    <div class="bg-[#18072e] border-4 border-[#ffe94d] text-[#ffe94d] px-5 py-3 shadow-[6px_6px_0_#000] font-pixel text-xs sm:text-sm flex items-center gap-3">
-      <span id="toast-icon">★</span>
-      <span id="toast-msg">Notification</span>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- SCREEN 1: LANDING SCREEN (Matching Mockup 1)                          -->
-  <!-- ===================================================================== -->
-  <section id="screen-landing" class="relative w-full min-h-screen flex flex-col justify-between overflow-hidden">
-    <!-- Pixel Clouds Layer -->
-    <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <!-- Left Pink/Lavender Pixel Cloud -->
-      <svg class="absolute top-14 -left-6 w-64 sm:w-80 animate-float" viewBox="0 0 160 64" fill="none">
-        <rect x="24" y="16" width="24" height="12" fill="#f7b2e6"/>
-        <rect x="16" y="28" width="48" height="12" fill="#f7b2e6"/>
-        <rect x="64" y="24" width="24" height="16" fill="#e594d8"/>
-        <rect x="0" y="40" width="120" height="14" fill="#d982cf"/>
-        <rect x="8" y="48" width="128" height="10" fill="#a85eb5"/>
-        <rect x="30" y="20" width="12" height="6" fill="#ffffff"/>
-        <rect x="70" y="28" width="12" height="6" fill="#ffffff"/>
+  <!-- =========================================================
+       SCREEN 1: LANDING SCREEN
+  ========================================================= -->
+  <section id="screen-landing" class="screen active">
+    <div class="landing-sky">
+      <!-- Left Pixel Cloud -->
+      <svg class="cloud cloud-left" width="170" height="75" viewBox="0 0 34 15">
+        <rect x="6" y="3" width="6" height="2" fill="#f7c6ff"/>
+        <rect x="4" y="5" width="12" height="2" fill="#f7c6ff"/>
+        <rect x="2" y="7" width="24" height="3" fill="#ffffff"/>
+        <rect x="0" y="10" width="32" height="3" fill="#d996ff"/>
+        <rect x="3" y="13" width="26" height="2" fill="#9c5ce6"/>
       </svg>
 
-      <!-- Right Pink/Lavender Pixel Cloud -->
-      <svg class="absolute top-10 -right-4 w-64 sm:w-80 animate-float" style="animation-delay: 1.2s;" viewBox="0 0 160 64" fill="none">
-        <rect x="84" y="8" width="24" height="12" fill="#f7b2e6"/>
-        <rect x="60" y="20" width="60" height="12" fill="#f7b2e6"/>
-        <rect x="36" y="32" width="110" height="14" fill="#d982cf"/>
-        <rect x="28" y="42" width="128" height="10" fill="#a85eb5"/>
-        <rect x="88" y="12" width="12" height="6" fill="#ffffff"/>
-        <rect x="64" y="24" width="14" height="6" fill="#ffffff"/>
+      <!-- Right Pixel Cloud -->
+      <svg class="cloud cloud-right" width="190" height="80" viewBox="0 0 38 16">
+        <rect x="18" y="2" width="8" height="2" fill="#f7c6ff"/>
+        <rect x="14" y="4" width="16" height="3" fill="#ffffff"/>
+        <rect x="6" y="7" width="28" height="3" fill="#ffffff"/>
+        <rect x="2" y="10" width="34" height="3" fill="#d996ff"/>
+        <rect x="5" y="13" width="28" height="2" fill="#9c5ce6"/>
       </svg>
+
+      <div class="subtitle-top">LET'S READ THE</div>
+
+      <!-- Dot-Matrix Banner: >E-BOOKZ< -->
+      <div class="matrix-banner" id="matrix-banner" aria-label=">E-BOOKZ<"></div>
+
+      <div class="byline">BY : ADAMZ</div>
+
+      <div class="sign-in-wrapper">
+        <button class="btn-signin" id="btn-open-login">SIGN IN</button>
+      </div>
     </div>
 
-    <!-- Top-Center Pixel Hero Header (LET'S READ THE >E-BOOKZ< BY : ADAMZ) -->
-    <div class="relative z-10 flex flex-col items-center text-center pt-10 sm:pt-14 px-3">
-      <h2 class="arcade-subtitle text-sm sm:text-xl md:text-2xl mb-4 sm:mb-6">
-        LET'S READ THE
-      </h2>
+    <!-- Bottom Pixel Street, Tree, Boy, Bus, Arcade Shops & Grass -->
+    <div class="landing-scene">
+      <svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice">
+        <!-- Far purple cityscape silhouettes -->
+        <rect x="0" y="35" width="320" height="45" fill="#270854"/>
+        <rect x="18" y="20" width="28" height="55" fill="#4b198c"/>
+        <rect x="22" y="24" width="6" height="4" fill="#ff73d0"/>
+        <rect x="32" y="24" width="6" height="4" fill="#24d8ff"/>
+        <rect x="22" y="32" width="6" height="4" fill="#24d8ff"/>
+        <rect x="32" y="32" width="6" height="4" fill="#ff73d0"/>
 
-      <!-- Pixel-Matrix Banner ">E-BOOKZ<" -->
-      <div id="pixel-logo-banner" class="w-full max-w-4xl px-2 my-1"></div>
+        <!-- Left Storefront & Tree -->
+        <rect x="36" y="42" width="62" height="38" fill="#5e239d"/>
+        <rect x="36" y="38" width="64" height="5" fill="#24d8ff"/>
+        <rect x="38" y="43" width="60" height="4" fill="#ff73d0"/>
+        <rect x="54" y="50" width="26" height="28" fill="#8b3dff"/>
+        <rect x="58" y="54" width="18" height="20" fill="#ff9ee0"/>
 
-      <p class="arcade-subtitle text-xs sm:text-base md:text-lg mt-4 sm:mt-6">
-        BY : <span id="landing-author-name">ADAMZ</span>
-      </p>
-    </div>
+        <!-- Pixel Tree on Left -->
+        <rect x="14" y="56" width="6" height="24" fill="#4a2511"/>
+        <rect x="4" y="32" width="26" height="24" fill="#0d6e4e"/>
+        <rect x="8" y="26" width="18" height="10" fill="#18a86b"/>
+        <rect x="2" y="38" width="12" height="14" fill="#18a86b"/>
+        <rect x="16" y="36" width="14" height="14" fill="#29d982"/>
+        <!-- Street Lamp -->
+        <rect x="42" y="44" width="2" height="36" fill="#222"/>
+        <polygon points="38,44 48,44 51,51 35,51" fill="#ffe838"/>
 
-    <!-- Cityscape + Bus + Characters + SIGN IN Button (Bottom Scene) -->
-    <div class="relative z-10 w-full mt-auto pt-8">
-      <!-- Center Floating SIGN IN Button over the Bus -->
-      <div class="relative z-30 flex justify-center -mb-6 sm:-mb-8">
-        <button id="btn-open-signin" class="sign-in-pill font-arcade text-lg sm:text-2xl md:text-3xl px-8 sm:px-12 py-3 sm:py-4 cursor-pointer tracking-wider">
-          SIGN IN
-        </button>
-      </div>
+        <!-- Boy Character -->
+        <rect x="91" y="58" width="8" height="4" fill="#18a86b"/>
+        <rect x="91" y="62" width="8" height="5" fill="#f7b98b"/>
+        <rect x="90" y="67" width="10" height="8" fill="#2b59ff"/>
+        <rect x="93" y="67" width="4" height="8" fill="#ff6a1a"/>
+        <rect x="91" y="75" width="3" height="5" fill="#1d2b53"/>
+        <rect x="96" y="75" width="3" height="5" fill="#1d2b53"/>
 
-      <!-- Detailed Pixel Street Scene SVG -->
-      <div class="w-full overflow-hidden">
-        <svg class="w-full h-56 sm:h-72 md:h-80 block" viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice">
-          <!-- Background Neon Buildings -->
-          <!-- Left Shop Building -->
-          <rect x="0" y="105" width="240" height="190" fill="#3a126e"/>
-          <rect x="0" y="105" width="240" height="36" fill="#35c9c9" stroke="#ff66b3" stroke-width="4"/>
-          <rect x="16" y="116" width="130" height="12" fill="#230b47"/>
-          <!-- Striped Awning -->
-          <rect x="150" y="141" width="120" height="24" fill="#ff73c6"/>
-          <rect x="165" y="141" width="15" height="24" fill="#35e0c4"/>
-          <rect x="195" y="141" width="15" height="24" fill="#35e0c4"/>
-          <rect x="225" y="141" width="15" height="24" fill="#35e0c4"/>
-          <rect x="255" y="141" width="15" height="24" fill="#35e0c4"/>
-          <!-- Door & Window -->
-          <rect x="155" y="175" width="60" height="120" fill="#ff73c6" stroke="#240947" stroke-width="4"/>
-          <rect x="168" y="190" width="34" height="45" fill="#240947"/>
+        <!-- Center Neon Sign Above Bus -->
+        <rect x="128" y="32" width="64" height="12" fill="#2b095e" stroke="#ff73d0" stroke-width="1.5"/>
+        <rect x="133" y="36" width="34" height="3" fill="#ffe838"/>
+        <rect x="172" y="36" width="14" height="3" fill="#24d8ff"/>
 
-          <!-- Center Bus Stop Shelter -->
-          <rect x="210" y="195" width="290" height="14" fill="#9c4276"/>
-          <rect x="235" y="209" width="245" height="86" fill="#591f6e"/>
-          <!-- Diagonal glass reflections -->
-          <polygon points="260,209 295,209 255,295 220,295" fill="#7d328c" opacity="0.6"/>
-          <polygon points="340,209 375,209 335,295 300,295" fill="#7d328c" opacity="0.6"/>
-          <!-- Green neon sign on roof -->
-          <rect x="365" y="170" width="105" height="24" fill="#18d99c" stroke="#240947" stroke-width="4"/>
+        <!-- Blue Pixel Bus -->
+        <rect x="108" y="54" width="96" height="24" rx="2" fill="#0095e8" stroke="#111" stroke-width="1.5"/>
+        <rect x="110" y="56" width="92" height="3" fill="#5ce1ff"/>
+        <!-- Bus Windows -->
+        <rect x="113" y="60" width="12" height="9" fill="#1a3263"/>
+        <rect x="128" y="60" width="12" height="9" fill="#1a3263"/>
+        <rect x="143" y="60" width="12" height="9" fill="#1a3263"/>
+        <rect x="158" y="60" width="12" height="9" fill="#1a3263"/>
+        <rect x="173" y="60" width="12" height="9" fill="#1a3263"/>
+        <rect x="188" y="60" width="11" height="14" fill="#1a3263"/>
+        <!-- Bus Stripe & Wheels -->
+        <rect x="109" y="71" width="94" height="2" fill="#ff73d0"/>
+        <circle cx="126" cy="78" r="4.5" fill="#111"/>
+        <circle cx="126" cy="78" r="2" fill="#888"/>
+        <circle cx="182" cy="78" r="4.5" fill="#111"/>
+        <circle cx="182" cy="78" r="2" fill="#888"/>
 
-          <!-- Center Back Building -->
-          <rect x="490" y="130" width="250" height="165" fill="#4f1687"/>
-          <rect x="495" y="130" width="240" height="32" fill="#35c9c9" stroke="#ff66b3" stroke-width="4"/>
-          <rect x="515" y="140" width="140" height="10" fill="#230b47"/>
+        <!-- Right Pink Arcade Shop & Ghost -->
+        <rect x="206" y="42" width="54" height="38" fill="#8c3b9c"/>
+        <rect x="204" y="40" width="58" height="5" fill="#ff9ee0"/>
+        <rect x="212" y="54" width="18" height="24" fill="#4b198c"/>
+        <!-- Cute Purple Ghost -->
+        <rect x="224" y="66" width="10" height="12" rx="4" fill="#9d2bff"/>
+        <rect x="226" y="69" width="2" height="3" fill="#fff"/>
+        <rect x="230" y="69" width="2" height="3" fill="#fff"/>
 
-          <!-- Right Pink Cafe / Shop -->
-          <rect x="765" y="170" width="240" height="125" fill="#d94e8f"/>
-          <rect x="880" y="140" width="110" height="28" fill="#ff85a2" stroke="#240947" stroke-width="4"/>
-          <rect x="765" y="205" width="165" height="28" fill="#ff94c8"/>
-          <rect x="775" y="238" width="145" height="55" fill="#471369"/>
-          <!-- Wooden Fence Right -->
-          <rect x="1005" y="205" width="195" height="12" fill="#8f4a38"/>
-          <rect x="1005" y="232" width="195" height="12" fill="#8f4a38"/>
-          <rect x="1005" y="260" width="195" height="12" fill="#8f4a38"/>
-          <rect x="1040" y="195" width="14" height="100" fill="#6e3326"/>
-          <rect x="1150" y="195" width="14" height="100" fill="#6e3326"/>
+        <!-- Billboard on Right -->
+        <rect x="262" y="50" width="30" height="18" fill="#24d8ff" stroke="#ff73d0" stroke-width="1.5"/>
+        <rect x="272" y="53" width="10" height="10" fill="#ff73d0"/>
+        <rect x="268" y="68" width="2" height="12" fill="#555"/>
+        <rect x="284" y="68" width="2" height="12" fill="#555"/>
 
-          <!-- Billboard on Right -->
-          <rect x="1015" y="225" width="12" height="70" fill="#5e3a73"/>
-          <rect x="968" y="172" width="106" height="58" rx="6" fill="#29abe2" stroke="#1b1464" stroke-width="4"/>
-          <!-- Face inside billboard -->
-          <circle cx="1021" cy="201" r="18" fill="#f7b2a8"/>
-          <path d="M1003,195 Q1021,175 1039,195" fill="#9c4276"/>
-          <rect x="968" y="236" width="106" height="16" rx="6" fill="#29abe2" stroke="#1b1464" stroke-width="3"/>
-
-          <!-- Pixel Tree on Left -->
-          <rect x="42" y="195" width="22" height="100" fill="#2e1847"/>
-          <circle cx="52" cy="175" r="46" fill="#0d5c46"/>
-          <circle cx="32" cy="155" r="34" fill="#138a59"/>
-          <circle cx="76" cy="162" r="36" fill="#138a59"/>
-          <circle cx="55" cy="135" r="32" fill="#1ec46e"/>
-          <circle cx="40" cy="145" r="14" fill="#4dff94"/>
-
-          <!-- Glowing Street Lamp -->
-          <path d="M132,295 L132,195 Q132,175 155,175 L175,175 L175,186" stroke="#852b78" stroke-width="7" fill="none"/>
-          <polygon points="163,186 187,186 196,210 154,210" fill="#ffe94d"/>
-          <polygon points="154,210 196,210 208,242 142,242" fill="#ffe94d" opacity="0.25"/>
-
-          <!-- Blue Pixel Bus in Center -->
-          <g transform="translate(405, 195)">
-            <!-- Bus Roof & Body -->
-            <rect x="8" y="0" width="374" height="12" fill="#4ce3ff"/>
-            <rect x="0" y="12" width="390" height="72" rx="6" fill="#148ce0" stroke="#0d2a5c" stroke-width="4"/>
-            <rect x="0" y="64" width="390" height="12" fill="#32c5ff"/>
-            <!-- Bus Windows -->
-            <rect x="16" y="20" width="44" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
-            <rect x="68" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
-            <rect x="128" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
-            <rect x="188" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
-            <rect x="248" y="20" width="52" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
-            <rect x="308" y="20" width="66" height="38" fill="#24295e" stroke="#0e1438" stroke-width="3"/>
-            <!-- Side Mirror -->
-            <rect x="390" y="22" width="12" height="18" fill="#32c5ff"/>
-            <!-- Wheels -->
-            <circle cx="105" cy="84" r="20" fill="#171b36" stroke="#0b0d1c" stroke-width="4"/>
-            <circle cx="105" cy="84" r="9" fill="#46539e"/>
-            <circle cx="295" cy="84" r="20" fill="#171b36" stroke="#0b0d1c" stroke-width="4"/>
-            <circle cx="295" cy="84" r="9" fill="#46539e"/>
-          </g>
-
-          <!-- Pixel Boy Character Standing Left of Bus -->
-          <g class="animate-sprite" transform="translate(335, 222)">
-            <!-- Hair -->
-            <rect x="8" y="0" width="34" height="14" rx="6" fill="#1bc44d"/>
-            <!-- Face -->
-            <rect x="10" y="12" width="30" height="18" fill="#ffbe94"/>
-            <rect x="15" y="17" width="4" height="5" fill="#1d0b36"/>
-            <rect x="29" y="17" width="4" height="5" fill="#1d0b36"/>
-            <!-- Orange Jacket + Blue Vest -->
-            <rect x="4" y="30" width="42" height="24" fill="#ff6619"/>
-            <rect x="12" y="30" width="26" height="24" fill="#2939c7"/>
-            <!-- Pants & Boots -->
-            <rect x="12" y="54" width="11" height="16" fill="#1a1f66"/>
-            <rect x="27" y="54" width="11" height="16" fill="#1a1f66"/>
-            <rect x="10" y="68" width="13" height="6" fill="#ff6619"/>
-            <rect x="27" y="68" width="13" height="6" fill="#ff6619"/>
-          </g>
-
-          <!-- Cute Purple Pixel Ghost/Cat Right of Bus -->
-          <g class="animate-float" transform="translate(838, 244)">
-            <path d="M8,0 H36 V8 H44 V48 H34 V40 H26 V48 H18 V40 H10 V48 H0 V8 H8 Z" fill="#9919cf"/>
-            <rect x="12" y="14" width="6" height="9" fill="#ffffff"/>
-            <rect x="14" y="16" width="3" height="5" fill="#180529"/>
-            <rect x="26" y="14" width="6" height="9" fill="#ffffff"/>
-            <rect x="28" y="16" width="3" height="5" fill="#180529"/>
-          </g>
-
-          <!-- Pixel Grass & Flower Ground Strip -->
-          <rect x="0" y="290" width="1200" height="30" fill="#068c45"/>
-          <rect x="0" y="286" width="1200" height="8" fill="#19c95b"/>
-          <!-- Pixel Flowers -->
-          <g fill="#ff73e6">
-            <rect x="45" y="288" width="6" height="6"/><rect x="140" y="292" width="6" height="6"/>
-            <rect x="250" y="287" width="6" height="6"/><rect x="375" y="291" width="6" height="6"/>
-            <rect x="520" y="288" width="6" height="6"/><rect x="665" y="292" width="6" height="6"/>
-            <rect x="790" y="287" width="6" height="6"/><rect x="940" y="291" width="6" height="6"/>
-            <rect x="1095" y="288" width="6" height="6"/>
-          </g>
-          <g fill="#5ce6ff">
-            <rect x="90" y="293" width="6" height="6"/><rect x="310" y="289" width="6" height="6"/>
-            <rect x="460" y="293" width="6" height="6"/><rect x="605" y="288" width="6" height="6"/>
-            <rect x="735" y="293" width="6" height="6"/><rect x="890" y="289" width="6" height="6"/>
-            <rect x="1030" y="293" width="6" height="6"/>
-          </g>
-        </svg>
-      </div>
+        <!-- Ground Grass & Flowers -->
+        <rect x="0" y="80" width="320" height="10" fill="#18a858"/>
+        <rect x="0" y="80" width="320" height="2" fill="#52f27a"/>
+        <rect x="12" y="82" width="2" height="2" fill="#ff73d0"/>
+        <rect x="44" y="84" width="2" height="2" fill="#ffe838"/>
+        <rect x="82" y="82" width="2" height="2" fill="#ffffff"/>
+        <rect x="135" y="84" width="2" height="2" fill="#ff73d0"/>
+        <rect x="195" y="82" width="2" height="2" fill="#ffe838"/>
+        <rect x="248" y="83" width="2" height="2" fill="#ffffff"/>
+        <rect x="292" y="82" width="2" height="2" fill="#ff73d0"/>
+      </svg>
     </div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- SCREEN 2: SIGN-IN DIALOG SCREEN (Matching Mockup 2)                   -->
-  <!-- ===================================================================== -->
-  <section id="screen-signin" class="hidden dither-bg relative w-full min-h-screen flex flex-col justify-between items-center overflow-hidden">
-    <!-- Top Spacer -->
-    <div class="h-6 sm:h-10"></div>
-
-    <!-- Classic Windows 95 / RPG Dialog Box ("ARE YOU READY ?") -->
-    <div class="relative z-20 w-[92%] max-w-xl mx-auto">
-      <div class="win95-box">
-        <!-- Blue Title Bar -->
-        <div class="win95-titlebar px-4 py-3 text-center">
-          <h2 class="font-arcade text-white text-sm sm:text-xl tracking-wider">
-            ARE YOU READY ?
-          </h2>
-        </div>
-
-        <!-- Form Interior -->
-        <div class="px-6 sm:px-12 py-7 sm:py-9 flex flex-col gap-6 text-center">
+  <!-- =========================================================
+       SCREEN 2: WIN95 / RPG SIGN-IN DIALOG
+  ========================================================= -->
+  <section id="screen-login" class="screen">
+    <div class="login-dialog-stack">
+      <div class="win95-window">
+        <div class="win95-titlebar">ARE YOU READY ?</div>
+        <div class="win95-body">
           <!-- USERNAME FIELD -->
-          <div>
-            <label for="input-username" class="block font-arcade text-white text-xs sm:text-base mb-3 drop-shadow-[2px_2px_0_#000]">
-              USERNAME
-            </label>
-            <div class="relative flex items-center max-w-sm mx-auto">
-              <!-- Pixel Heart + Red Fill Accent -->
-              <div class="relative z-10 -mr-4 flex items-center">
-                <svg class="w-12 h-12 drop-shadow-[2px_2px_0_#1a0826]" viewBox="0 0 16 16">
-                  <path d="M2 3h4v1h1v1h2V4h1V3h4v1h1v5h-1v2h-2v2h-2v2H6v-2H4v-2H2V9H1V4h1V3z" fill="#1a0826"/>
-                  <path d="M3 4h3v1h1v1h2V5h1V4h3v4h-1v2h-2v2H9v1H7v-1H6v-2H4V8H3V4z" fill="#ff5c5c"/>
-                  <rect x="4" y="5" width="2" height="2" fill="#ffc2c2"/>
-                </svg>
-              </div>
-              <div class="rpg-bar-input flex-1 h-11 rounded-r-full flex items-center pl-6 pr-4 overflow-hidden">
-                <div class="absolute left-0 top-0 bottom-0 w-8 bg-[#f25238] pointer-events-none"></div>
-                <input
-                  id="input-username"
-                  type="text"
-                  maxlength="16"
-                  placeholder="ADAM"
-                  class="relative z-10 w-full bg-transparent text-white font-arcade text-xs sm:text-sm focus:outline-none placeholder-white/60 uppercase"
-                />
+          <div class="rpg-field-group">
+            <label class="rpg-label" for="login-username">USERNAME</label>
+            <div class="heart-bar-wrapper">
+              <svg class="pixel-heart-icon" viewBox="0 0 16 15">
+                <path d="M2 1h4v1h1v1h2V2h1V1h4v1h1v1h1v4h-1v2h-1v2h-2v2H9v2H7v-2H5v-2H3V9H2V7H1V3h1V2h1V1z" fill="#111"/>
+                <path d="M3 2h3v1h1v1h2V3h1V2h3v1h1v4h-1v2h-2v2H9v2H7v-2H5V9H3V7H2V3h1V2z" fill="#ff5a4d"/>
+                <rect x="3" y="3" width="2" height="2" fill="#ffb8b0"/>
+              </svg>
+              <div class="heart-input-track">
+                <div class="heart-fill" id="user-fill"></div>
+                <input type="text" id="login-username" class="heart-input" value="ADAM" maxlength="14" placeholder="ENTER NAME" />
               </div>
             </div>
           </div>
 
           <!-- PASSWORD FIELD -->
-          <div>
-            <label for="input-password" class="block font-arcade text-white text-xs sm:text-base mb-3 drop-shadow-[2px_2px_0_#000]">
-              PASSWORD
-            </label>
-            <div class="relative flex items-center max-w-sm mx-auto">
-              <!-- Pixel Heart + Red Fill Accent -->
-              <div class="relative z-10 -mr-4 flex items-center">
-                <svg class="w-12 h-12 drop-shadow-[2px_2px_0_#1a0826]" viewBox="0 0 16 16">
-                  <path d="M2 3h4v1h1v1h2V4h1V3h4v1h1v5h-1v2h-2v2h-2v2H6v-2H4v-2H2V9H1V4h1V3z" fill="#1a0826"/>
-                  <path d="M3 4h3v1h1v1h2V5h1V4h3v4h-1v2h-2v2H9v1H7v-1H6v-2H4V8H3V4z" fill="#ff5c5c"/>
-                  <rect x="4" y="5" width="2" height="2" fill="#ffc2c2"/>
-                </svg>
-              </div>
-              <div class="rpg-bar-input flex-1 h-11 rounded-r-full flex items-center pl-6 pr-4 overflow-hidden">
-                <div class="absolute left-0 top-0 bottom-0 w-8 bg-[#f25238] pointer-events-none"></div>
-                <input
-                  id="input-password"
-                  type="password"
-                  placeholder="••••••"
-                  class="relative z-10 w-full bg-transparent text-white font-arcade text-xs sm:text-sm focus:outline-none placeholder-white/60"
-                />
+          <div class="rpg-field-group">
+            <label class="rpg-label" for="login-password">PASSWORD</label>
+            <div class="heart-bar-wrapper">
+              <svg class="pixel-heart-icon" viewBox="0 0 16 15">
+                <path d="M2 1h4v1h1v1h2V2h1V1h4v1h1v1h1v4h-1v2h-1v2h-2v2H9v2H7v-2H5v-2H3V9H2V7H1V3h1V2h1V1z" fill="#111"/>
+                <path d="M3 2h3v1h1v1h2V3h1V2h3v1h1v4h-1v2h-2v2H9v2H7v-2H5V9H3V7H2V3h1V2z" fill="#ff5a4d"/>
+                <rect x="3" y="3" width="2" height="2" fill="#ffb8b0"/>
+              </svg>
+              <div class="heart-input-track">
+                <div class="heart-fill" id="pass-fill"></div>
+                <input type="password" id="login-password" class="heart-input" value="1234" placeholder="••••••" />
               </div>
             </div>
+          </div>
+
+          <div class="win95-buttons">
+            <button class="btn-win95" id="btn-login-yes">Yes</button>
+            <button class="btn-win95" id="btn-login-no">No</button>
           </div>
         </div>
       </div>
 
-      <!-- Yes / No Buttons Attached Under Dialog Box -->
-      <div class="grid grid-cols-2 gap-4 mt-3">
-        <button id="btn-signin-yes" class="win95-btn py-3 sm:py-4 font-pixel text-lg sm:text-2xl font-bold cursor-pointer">
-          Yes
-        </button>
-        <button id="btn-signin-no" class="win95-btn py-3 sm:py-4 font-pixel text-lg sm:text-2xl font-bold cursor-pointer">
-          No
-        </button>
-      </div>
+      <!-- Two Pixel Characters Standing Beneath Dialog -->
+      <svg class="login-characters-under" width="120" height="84" viewBox="0 0 28 20">
+        <!-- Left Character (Orange hair, blue shirt) -->
+        <rect x="3" y="1" width="7" height="3" fill="#d96b14"/>
+        <rect x="4" y="4" width="6" height="4" fill="#f7b98b"/>
+        <rect x="5" y="5" width="1" height="2" fill="#111"/>
+        <rect x="8" y="5" width="1" height="2" fill="#111"/>
+        <rect x="3" y="8" width="8" height="6" fill="#0055ff"/>
+        <rect x="4" y="14" width="2" height="5" fill="#1a265c"/>
+        <rect x="8" y="14" width="2" height="5" fill="#1a265c"/>
+
+        <!-- Right Character (Green hair, blue vest, orange sleeves) -->
+        <rect x="16" y="1" width="7" height="3" fill="#18a858"/>
+        <rect x="17" y="4" width="6" height="4" fill="#f7b98b"/>
+        <rect x="18" y="5" width="1" height="2" fill="#111"/>
+        <rect x="21" y="5" width="1" height="2" fill="#111"/>
+        <rect x="15" y="8" width="2" height="5" fill="#ff6a1a"/>
+        <rect x="17" y="8" width="5" height="6" fill="#2b59ff"/>
+        <rect x="22" y="8" width="2" height="5" fill="#ff6a1a"/>
+        <rect x="17" y="14" width="2" height="5" fill="#1a265c"/>
+        <rect x="20" y="14" width="2" height="5" fill="#1a265c"/>
+      </svg>
     </div>
 
-    <!-- Bottom Sprites: Space Invaders + Two Heroes Standing on Tile Floor -->
-    <div class="relative z-10 w-full mt-auto pt-4">
-      <div class="max-w-5xl mx-auto px-6 flex items-end justify-between -mb-2">
-        <!-- Left Magenta Space Invader -->
-        <svg class="w-16 h-16 sm:w-20 sm:h-20 animate-float" viewBox="0 0 16 14">
-          <path d="M3 1h2v2H3V1zm8 0h2v2h-2V1zM4 3h8v2h2v3h2v3h-2V9h-2v3H9v-2H7v2H4V9H2v2H0V8h2V5h2V3z" fill="#e639f6" stroke="#ffffff" stroke-width="0.6"/>
-          <rect x="5" y="5" width="2" height="2" fill="#39ff14"/>
-          <rect x="9" y="5" width="2" height="2" fill="#39ff14"/>
-        </svg>
+    <!-- Bottom Space Invaders & Checker Floor -->
+    <div class="login-floor">
+      <svg width="70" height="64" viewBox="0 0 14 13" style="margin-left: 8%; margin-bottom: 18px;">
+        <rect x="3" y="1" width="2" height="2" fill="#e65cff"/>
+        <rect x="9" y="1" width="2" height="2" fill="#e65cff"/>
+        <rect x="2" y="3" width="10" height="5" fill="#e65cff"/>
+        <rect x="4" y="4" width="2" height="2" fill="#52f27a"/>
+        <rect x="8" y="4" width="2" height="2" fill="#52f27a"/>
+        <rect x="1" y="8" width="3" height="3" fill="#e65cff"/>
+        <rect x="10" y="8" width="3" height="3" fill="#e65cff"/>
+      </svg>
 
-        <!-- Center Two Pixel Characters (Spiky Brown Hair + Green Hat) -->
-        <div class="flex items-end gap-2">
-          <!-- Character 1 (Blue Shirt) -->
-          <svg class="w-16 h-24 sm:w-20 sm:h-28" viewBox="0 0 18 26">
-            <path d="M5 1h3l1 2 2-2h3v3h1v4H3V4h2V1z" fill="#d96b14"/>
-            <rect x="4" y="7" width="10" height="7" fill="#ffbe94"/>
-            <rect x="6" y="9" width="2" height="2" fill="#18082b"/>
-            <rect x="10" y="9" width="2" height="2" fill="#18082b"/>
-            <rect x="3" y="14" width="12" height="7" fill="#0d47e8"/>
-            <rect x="1" y="15" width="2" height="5" fill="#ffbe94"/>
-            <rect x="15" y="15" width="2" height="5" fill="#ffbe94"/>
-            <rect x="5" y="21" width="3" height="4" fill="#12184a"/>
-            <rect x="10" y="21" width="3" height="4" fill="#12184a"/>
-          </svg>
-          <!-- Character 2 (Green Hat + Orange Jacket) -->
-          <svg class="w-16 h-24 sm:w-20 sm:h-28" viewBox="0 0 18 26">
-            <rect x="3" y="2" width="12" height="5" rx="2" fill="#19c94e"/>
-            <rect x="4" y="7" width="10" height="7" fill="#ffbe94"/>
-            <rect x="6" y="9" width="2" height="2" fill="#18082b"/>
-            <rect x="10" y="9" width="2" height="2" fill="#18082b"/>
-            <rect x="2" y="14" width="14" height="7" fill="#ff6619"/>
-            <rect x="5" y="14" width="8" height="7" fill="#3246db"/>
-            <rect x="5" y="21" width="3" height="4" fill="#1a1f66"/>
-            <rect x="10" y="21" width="3" height="4" fill="#1a1f66"/>
-          </svg>
-        </div>
+      <svg width="70" height="64" viewBox="0 0 14 13" style="margin-right: 8%; margin-bottom: 18px;">
+        <rect x="3" y="1" width="2" height="2" fill="#7b1fa2"/>
+        <rect x="9" y="1" width="2" height="2" fill="#7b1fa2"/>
+        <rect x="2" y="3" width="10" height="5" fill="#7b1fa2"/>
+        <rect x="4" y="4" width="2" height="2" fill="#ff5252"/>
+        <rect x="8" y="4" width="2" height="2" fill="#ff5252"/>
+        <rect x="1" y="8" width="3" height="3" fill="#7b1fa2"/>
+        <rect x="10" y="8" width="3" height="3" fill="#7b1fa2"/>
+      </svg>
 
-        <!-- Right Dark-Purple Space Invader -->
-        <svg class="w-16 h-16 sm:w-20 sm:h-20 animate-float" style="animation-delay: 0.8s;" viewBox="0 0 16 14">
-          <path d="M4 1h8v2h2v3h2v4h-2V8h-2v4h-2v-2H6v2H4V8H2v2H0V6h2V3h2V1z" fill="#4f0ba8" stroke="#ffffff" stroke-width="0.6"/>
-          <rect x="5" y="5" width="2" height="2" fill="#ff1e8a"/>
-          <rect x="9" y="5" width="2" height="2" fill="#ff1e8a"/>
-        </svg>
-      </div>
-
-      <!-- Pixel Brick Floor -->
-      <div class="w-full h-11 bg-[#7d70ff] border-t-4 border-[#b8b0ff] grid grid-cols-12">
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div class="border-r-4 border-[#4d3ec7]"></div>
-        <div></div>
-      </div>
+      <div style="position:absolute; bottom:0; left:0; right:0; height:18px; background: repeating-linear-gradient(90deg, #9d6bff 0 28px, #5882fa 28px 56px); border-top: 3px solid #111;"></div>
     </div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- SCREEN 3: MAIN DASHBOARD & LIBRARY (Matching Mockup 3)                -->
-  <!-- ===================================================================== -->
-  <section id="screen-dashboard" class="hidden relative w-full min-h-screen flex flex-col justify-between overflow-x-hidden">
-    <!-- Subtle Pixel City Skyline Background -->
-    <div class="fixed inset-0 pointer-events-none opacity-35 z-0">
-      <div class="absolute bottom-8 left-0 w-36 h-80 bg-[#1eb8d9] border-r-4 border-[#ff59b4] flex flex-col justify-around p-3">
-        <div class="h-4 bg-[#441082]"></div>
-        <div class="h-4 bg-[#441082]"></div>
-        <div class="h-4 bg-[#441082]"></div>
-        <div class="h-4 bg-[#441082]"></div>
-        <div class="h-4 bg-[#441082]"></div>
-      </div>
-      <div class="absolute bottom-8 right-0 w-44 h-72 bg-[#2b0959] border-l-4 border-[#1eb8d9] grid grid-cols-3 gap-2 p-3">
-        <div class="bg-[#ff59b4] h-4"></div><div class="bg-[#1eb8d9] h-4"></div><div></div>
-        <div></div><div class="bg-[#ff59b4] h-4"></div><div class="bg-[#1eb8d9] h-4"></div>
-        <div class="bg-[#1eb8d9] h-4"></div><div></div><div class="bg-[#ff59b4] h-4"></div>
-      </div>
-    </div>
+  <!-- =========================================================
+       SCREEN 3: MAIN DASHBOARD
+  ========================================================= -->
+  <section id="screen-dashboard" class="screen">
+    <!-- Top HUD Header -->
+    <header class="hud-header">
+      <div class="profile-hud">
+        <div class="avatar-ring" id="avatar-trigger" title="Click to upload profile photo">
+          <img id="profile-avatar-img" alt="User Avatar" />
+        </div>
+        <input type="file" id="avatar-file-input" accept="image/*" hidden />
 
-    <!-- TOP BAR: Profile Avatar + RPG Name Bar (Left) & 3 Action Icons (Right) -->
-    <header class="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-4 sm:pt-6 flex flex-wrap items-center justify-between gap-4">
-      <!-- Top-Left User Profile Pill -->
-      <div class="flex items-center">
-        <!-- Circular Gold-Framed Avatar (Click to Upload Profile Photo) -->
-        <label for="upload-avatar-input" title="Click to upload profile photo" class="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-[#ffe05d] shadow-[0_0_0_3px_#1b0836] overflow-hidden bg-[#2b0959] cursor-pointer group flex items-center justify-center">
-          <img id="profile-avatar-img" src="" alt="Profile" class="w-full h-full object-cover hidden" />
-          <div id="profile-avatar-fallback" class="w-full h-full flex flex-col items-center justify-center bg-[#f2d0a9] text-[#2b0959]">
-            <span class="text-2xl">👾</span>
+        <div class="rpg-name-bar">
+          <div class="rpg-name-fill">
+            <input type="text" id="hud-username" value="ADAM" maxlength="14" title="Click to edit your name" />
           </div>
-          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[9px] font-arcade text-center text-[#ffe05d] p-1">
-            PHOTO
-          </div>
-        </label>
-        <input id="upload-avatar-input" type="file" accept="image/*" class="hidden" />
-
-        <!-- Green RPG Health-Bar Name Tag -->
-        <div class="relative -ml-3 flex items-center bg-[#7b6f8a] border-4 border-[#271b38] rounded-r-xl h-10 sm:h-11 pr-5 shadow-[4px_4px_0_rgba(0,0,0,0.35)]">
-          <div class="bg-[#649e47] h-full flex items-center pl-5 pr-4 border-r-4 border-[#3c6927]">
-            <input
-              id="dashboard-username-input"
-              type="text"
-              value="ADAM"
-              maxlength="14"
-              title="Click to edit your name"
-              class="bg-transparent text-white font-arcade text-xs sm:text-sm w-24 sm:w-32 focus:outline-none uppercase tracking-wider"
-            />
-          </div>
-          <span class="ml-2 text-[10px] text-white/75 font-pixel hidden sm:inline">LVL 99</span>
         </div>
       </div>
 
-      <!-- Top-Right 3 Action Icons (Upload music, Theme colour, Upload pdf) -->
-      <div class="flex items-center gap-4 sm:gap-7">
-        <!-- 1. Upload Music (Vinyl Record Icon) -->
-        <button id="btn-open-music-modal" class="group flex flex-col items-center gap-1.5 cursor-pointer focus:outline-none">
-          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#120b24] border-2 border-[#392861] flex items-center justify-center shadow-[0_4px_0_#000] group-hover:scale-110 transition-transform">
-            <svg id="header-vinyl-svg" class="w-10 h-10" viewBox="0 0 32 32">
-              <circle cx="16" cy="16" r="14" fill="#171426" stroke="#473c6e" stroke-width="1.5"/>
-              <circle cx="16" cy="16" r="10" fill="none" stroke="#2c2447" stroke-width="1"/>
-              <circle cx="16" cy="16" r="5" fill="#d9268b"/>
-              <circle cx="16" cy="16" r="1.8" fill="#ffffff"/>
+      <!-- Top-Right Action Icons: Upload music, Theme colour, Upload pdf -->
+      <div class="hud-actions">
+        <button class="hud-action-btn" id="btn-open-music-modal">
+          <div class="hud-icon-box">
+            <!-- Vinyl Record Pixel Icon -->
+            <svg width="44" height="44" viewBox="0 0 16 16">
+              <circle cx="8" cy="8" r="7" fill="#1e1338" stroke="#111" stroke-width="1"/>
+              <circle cx="8" cy="8" r="5" fill="none" stroke="#4a3085" stroke-width="1"/>
+              <circle cx="8" cy="8" r="2.5" fill="#9c5ce6"/>
+              <circle cx="8" cy="8" r="1" fill="#111"/>
             </svg>
           </div>
-          <span class="font-pixel text-[10px] sm:text-xs text-white drop-shadow-[1px_1px_0_#000]">Upload music</span>
+          <span>Upload music</span>
         </button>
 
-        <!-- 2. Theme Colour (RGB Venn Diagram Icon) -->
-        <button id="btn-open-theme-modal" class="group flex flex-col items-center gap-1.5 cursor-pointer focus:outline-none">
-          <div class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-12 h-12 drop-shadow-[0_4px_0_#000]" viewBox="0 0 32 32">
-              <circle cx="16" cy="11" r="8" fill="#ff1e27" fill-opacity="0.9"/>
-              <circle cx="11" cy="20" r="8" fill="#1e5bff" fill-opacity="0.9"/>
-              <circle cx="21" cy="20" r="8" fill="#ffe600" fill-opacity="0.9"/>
+        <button class="hud-action-btn" id="btn-open-theme-modal">
+          <div class="hud-icon-box">
+            <!-- RGB Venn Circles Icon -->
+            <svg width="44" height="44" viewBox="0 0 16 16">
+              <circle cx="8" cy="5.5" r="4" fill="#ff2a2a"/>
+              <circle cx="5.5" cy="10" r="4" fill="#2a5cff"/>
+              <circle cx="10.5" cy="10" r="4" fill="#ffe838"/>
+              <circle cx="8" cy="8.5" r="1.5" fill="#ffffff"/>
             </svg>
           </div>
-          <span class="font-pixel text-[10px] sm:text-xs text-white drop-shadow-[1px_1px_0_#000]">Theme colour</span>
+          <span>Theme colour</span>
         </button>
 
-        <!-- 3. Upload PDF (White Pixel Space-Invader Icon) -->
-        <label for="upload-pdf-input" class="group flex flex-col items-center gap-1.5 cursor-pointer">
-          <div class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-12 h-12 drop-shadow-[0_4px_0_#000]" viewBox="0 0 16 14">
-              <path d="M3 1h2v2H3V1zm8 0h2v2h-2V1zM4 3h8v2h2v3h2v3h-2V9h-2v3H9v-2H7v2H4V9H2v2H0V8h2V5h2V3z" fill="#e8ebff"/>
-              <rect x="5" y="5" width="2" height="2" fill="#441082"/>
-              <rect x="9" y="5" width="2" height="2" fill="#441082"/>
+        <button class="hud-action-btn" id="btn-trigger-pdf-upload">
+          <div class="hud-icon-box">
+            <!-- White Pixel Space Invader Icon -->
+            <svg width="44" height="44" viewBox="0 0 16 16">
+              <rect x="4" y="2" width="2" height="2" fill="#fff"/>
+              <rect x="10" y="2" width="2" height="2" fill="#fff"/>
+              <rect x="3" y="4" width="10" height="5" fill="#fff"/>
+              <rect x="1" y="6" width="2" height="4" fill="#fff"/>
+              <rect x="13" y="6" width="2" height="4" fill="#fff"/>
+              <rect x="5" y="5" width="2" height="2" fill="#111"/>
+              <rect x="9" y="5" width="2" height="2" fill="#111"/>
+              <rect x="4" y="9" width="2" height="3" fill="#fff"/>
+              <rect x="10" y="9" width="2" height="3" fill="#fff"/>
             </svg>
           </div>
-          <span class="font-pixel text-[10px] sm:text-xs text-white drop-shadow-[1px_1px_0_#000]">Upload pdf</span>
-        </label>
-        <input id="upload-pdf-input" type="file" accept="application/pdf,.pdf" multiple class="hidden" />
+          <span>Upload pdf</span>
+        </button>
+        <input type="file" id="pdf-file-input" accept="application/pdf" multiple hidden />
       </div>
     </header>
 
-    <!-- MAIN DASHBOARD GRID (Matching Mockup 3 Layout) -->
-    <main class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-10 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-      <!-- LEFT COLUMN (7 cols): "in Progress" Bubble + "Finish" Bubble -->
-      <div class="lg:col-span-7 flex flex-col gap-9">
-
-        <!-- CARD 1: "in Progress" Speech Bubble with Running Pixel Hero on Top -->
-        <div class="relative pt-8">
-          <!-- Running Pixel Hero Sprite on Top of Bubble -->
-          <svg class="w-16 h-16 absolute -top-4 left-1/2 -translate-x-1/2 z-20 animate-sprite" viewBox="0 0 24 24">
-            <!-- Golden Hair & Cape -->
-            <path d="M2 10h6v4H1v-2h1v-2z" fill="#7d5fff"/>
-            <rect x="9" y="2" width="7" height="4" fill="#ffd43b"/>
-            <rect x="10" y="6" width="6" height="5" fill="#ffbe94"/>
-            <rect x="14" y="7" width="2" height="2" fill="#18082b"/>
-            <!-- Blue Tunic -->
-            <rect x="8" y="11" width="8" height="6" fill="#4dabf7"/>
-            <rect x="16" y="11" width="4" height="3" fill="#ffbe94"/>
-            <!-- Running Legs -->
-            <rect x="6" y="17" width="4" height="5" fill="#ffd43b"/>
-            <rect x="14" y="17" width="5" height="4" fill="#ffd43b"/>
+    <!-- Main Dashboard Two-Column Layout -->
+    <main class="dashboard-grid">
+      <!-- LEFT COLUMN: in Progress + Finish -->
+      <div class="left-shelves">
+        <!-- IN PROGRESS BUBBLE -->
+        <div class="pixel-bubble bubble-tail-left">
+          <!-- Blonde Hero Running with Cape on top -->
+          <svg class="runner-sprite" width="150" height="56" viewBox="0 0 42 16">
+            <!-- Yellow Speed Cloud -->
+            <rect x="20" y="8" width="16" height="6" fill="#ffe838"/>
+            <rect x="23" y="5" width="10" height="4" fill="#fff380"/>
+            <rect x="18" y="11" width="20" height="3" fill="#ffd000"/>
+            <!-- Purple Cape -->
+            <rect x="6" y="6" width="7" height="4" fill="#8b3dff"/>
+            <!-- Blonde Hair & Head -->
+            <rect x="12" y="2" width="6" height="3" fill="#ffe838"/>
+            <rect x="13" y="4" width="5" height="4" fill="#f7b98b"/>
+            <!-- Blue Suit & Red Boots -->
+            <rect x="11" y="8" width="7" height="4" fill="#24d8ff"/>
+            <rect x="9" y="12" width="3" height="3" fill="#ff5a4d"/>
+            <rect x="16" y="12" width="3" height="3" fill="#ff5a4d"/>
           </svg>
 
-          <div class="pixel-bubble tail-top-left p-5 sm:p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="font-pixel text-lg sm:text-2xl font-bold text-[#111]">in Progress</h3>
-              <span id="inprogress-count" class="font-pixel text-xs bg-[#ede4ff] text-[#441082] px-2.5 py-1 rounded border-2 border-[#111]">0 books</span>
-            </div>
+          <div class="bubble-header">
+            <h2 class="bubble-title">in Progress</h2>
+            <span style="font-family:'VT323',monospace; font-size:17px; color:#555;" id="progress-count-label">0 books</span>
+          </div>
 
-            <!-- Carousel Row with < and > buttons -->
-            <div class="flex items-center gap-2 sm:gap-3">
-              <button id="btn-prev-progress" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Previous">
-                &lt;
-              </button>
-
-              <div id="inprogress-grid" class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <!-- Book cards rendered dynamically here -->
-              </div>
-
-              <button id="btn-next-progress" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Next">
-                &gt;
-              </button>
-            </div>
+          <div class="shelf-carousel">
+            <button class="shelf-arrow" id="prev-progress" title="Previous">&lt;</button>
+            <div class="cards-row" id="shelf-progress"></div>
+            <button class="shelf-arrow" id="next-progress" title="Next">&gt;</button>
           </div>
         </div>
 
-        <!-- CARD 2: "Finish" Speech Bubble -->
-        <div class="relative">
-          <div class="pixel-bubble tail-top-left p-5 sm:p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="font-pixel text-lg sm:text-2xl font-bold text-[#111]">Finish</h3>
-              <span id="finish-count" class="font-pixel text-xs bg-[#e2fce8] text-[#15692b] px-2.5 py-1 rounded border-2 border-[#111]">0 books</span>
-            </div>
+        <!-- FINISH BUBBLE -->
+        <div class="pixel-bubble bubble-tail-left">
+          <div class="bubble-header">
+            <h2 class="bubble-title">Finish</h2>
+            <span style="font-family:'VT323',monospace; font-size:17px; color:#555;" id="finish-count-label">0 books</span>
+          </div>
 
-            <div class="flex items-center gap-2 sm:gap-3">
-              <button id="btn-prev-finish" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Previous">
-                &lt;
-              </button>
-
-              <div id="finish-grid" class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <!-- Finished book cards rendered dynamically here -->
-              </div>
-
-              <button id="btn-next-finish" class="font-arcade text-lg sm:text-xl text-[#111] hover:text-[#6722b8] px-1.5 py-6 cursor-pointer" title="Next">
-                &gt;
-              </button>
-            </div>
+          <div class="shelf-carousel">
+            <button class="shelf-arrow" id="prev-finish" title="Previous">&lt;</button>
+            <div class="cards-row" id="shelf-finish"></div>
+            <button class="shelf-arrow" id="next-finish" title="Next">&gt;</button>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT COLUMN (5 cols): "Favourite book" Bubble + "Music" Bubble & Corgi/Girl -->
-      <div class="lg:col-span-5 flex flex-col gap-9">
-
-        <!-- CARD 3: "Favourite book" Speech Bubble with Pixel Cat on Top & Golden Crown -->
-        <div class="relative pt-8 max-w-md w-full mx-auto lg:ml-auto">
-          <!-- Cute Lavender Pixel Cat on Top of Bubble -->
-          <svg class="w-14 h-12 absolute -top-2 left-1/2 -translate-x-1/2 z-20" viewBox="0 0 18 14">
-            <path d="M3 2h2v2h4V2h2v4h2v5h3v2H2V6h1V2z" fill="#c792ff" stroke="#18082b" stroke-width="1"/>
-            <rect x="4" y="6" width="2" height="2" fill="#18082b"/>
-            <rect x="8" y="6" width="2" height="2" fill="#18082b"/>
-            <rect x="6" y="8" width="2" height="1" fill="#ff73b9"/>
+      <!-- RIGHT COLUMN: Favourite Book + Music Player -->
+      <div class="right-panels">
+        <!-- FAVOURITE BOOK BUBBLE -->
+        <div class="pixel-bubble bubble-tail-right">
+          <!-- Cute Pixel Cat Sitting on Top -->
+          <svg class="cat-sprite" width="52" height="40" viewBox="0 0 16 12">
+            <rect x="4" y="1" width="2" height="2" fill="#e0aaff"/>
+            <rect x="10" y="1" width="2" height="2" fill="#e0aaff"/>
+            <rect x="4" y="3" width="8" height="4" fill="#f3d5ff"/>
+            <rect x="5" y="4" width="1" height="1" fill="#111"/>
+            <rect x="10" y="4" width="1" height="1" fill="#111"/>
+            <rect x="5" y="7" width="6" height="4" fill="#e0aaff"/>
+            <rect x="11" y="6" width="2" height="4" fill="#c77dff"/>
           </svg>
 
-          <div class="pixel-bubble tail-top-right p-5 sm:p-6 flex flex-col items-center text-center">
-            <h3 class="font-pixel text-lg sm:text-2xl font-bold text-[#111] mb-2">Favourite book</h3>
-
-            <!-- Golden Pixel Crown -->
-            <svg class="w-14 h-10 mb-2 drop-shadow-[2px_2px_0_#111]" viewBox="0 0 20 14">
-              <path d="M1 3h2v3h3V2h2v4h4V2h2v4h3V3h2v9H1V3z" fill="#ffd43b" stroke="#111" stroke-width="1"/>
-              <rect x="4" y="8" width="2" height="2" fill="#ff3b6b"/>
-              <rect x="9" y="8" width="2" height="2" fill="#3bc9db"/>
-              <rect x="14" y="8" width="2" height="2" fill="#ff3b6b"/>
-            </svg>
-
-            <!-- Featured Favourite Book Slot -->
-            <div id="favourite-book-slot" class="w-full max-w-[210px]">
-              <!-- Rendered dynamically -->
+          <div class="fav-bubble-inner">
+            <div class="crown-header">
+              <h2 class="bubble-title">Favourite book</h2>
+              <!-- Pixel Gold Crown -->
+              <svg width="64" height="34" viewBox="0 0 18 10">
+                <polygon points="1,9 1,3 5,6 9,1 13,6 17,3 17,9" fill="#ffe838" stroke="#111" stroke-width="1.2"/>
+                <rect x="4" y="6" width="2" height="2" fill="#ff2a2a"/>
+                <rect x="8" y="5" width="2" height="2" fill="#24d8ff"/>
+                <rect x="12" y="6" width="2" height="2" fill="#ff2a2a"/>
+              </svg>
             </div>
+
+            <div class="fav-card-slot" id="favourite-slot"></div>
           </div>
         </div>
 
-        <!-- CARD 4: Pixel Girl & Corgi Dog + "Music" Speech Bubble -->
-        <div class="relative flex flex-col sm:flex-row items-center sm:items-end justify-end gap-4 mt-2">
-          <!-- Corgi Dog & Blonde Pixel Girl with Hearts (Left of Music Bubble) -->
-          <div class="flex items-end gap-1 shrink-0">
-            <!-- Pixel Corgi with Mini Hearts -->
-            <div class="flex flex-col items-center">
-              <div class="flex gap-0.5 text-[10px] text-[#ff5938] mb-0.5">♥♥♥♥♥</div>
-              <svg class="w-14 h-14" viewBox="0 0 18 16">
-                <path d="M11 2h2v3h3v4h-2v6h-2v-3H6v3H4V9H2V7h2v1h7V2z" fill="#e88d2a" stroke="#18082b" stroke-width="0.9"/>
-                <rect x="13" y="4" width="2" height="2" fill="#18082b"/>
-                <rect x="6" y="9" width="6" height="3" fill="#ffffff"/>
-              </svg>
+        <!-- GIRL + CORGI + MUSIC SPEECH BUBBLE -->
+        <div class="music-area-wrapper">
+          <div class="girl-dog-companion">
+            <!-- Floating Hearts Row -->
+            <div style="display:flex; gap:3px; margin-bottom:4px;">
+              <span style="color:#ff5a4d; font-size:12px;">♥</span>
+              <span style="color:#ff5a4d; font-size:12px;">♥</span>
+              <span style="color:#ff5a4d; font-size:12px;">♥</span>
+              <span style="color:#ff5a4d; font-size:12px;">♥</span>
+              <span style="color:#ff5a4d; font-size:12px;">♥</span>
             </div>
 
-            <!-- Pixel Girl with Hearts -->
-            <div class="flex flex-col items-center">
-              <div class="flex gap-0.5 text-xs text-[#ff5938] mb-0.5">♥♥♥♥♥</div>
-              <svg class="w-16 h-24" viewBox="0 0 18 26">
-                <!-- Pink Ribbon + Blonde Hair -->
-                <rect x="6" y="0" width="6" height="2" fill="#ff3b8d"/>
-                <rect x="4" y="2" width="10" height="10" rx="3" fill="#ffe05d"/>
-                <rect x="5" y="6" width="8" height="6" fill="#ffbe94"/>
-                <rect x="6" y="8" width="2" height="2" fill="#18082b"/>
-                <rect x="10" y="8" width="2" height="2" fill="#18082b"/>
-                <!-- Magenta Top + Blue Skirt -->
-                <rect x="4" y="12" width="10" height="6" fill="#e6198e"/>
-                <rect x="5" y="18" width="8" height="4" fill="#228be6"/>
-                <!-- Legs -->
-                <rect x="5" y="22" width="3" height="4" fill="#ffbe94"/>
-                <rect x="10" y="22" width="3" height="4" fill="#ffbe94"/>
-              </svg>
-            </div>
+            <!-- Corgi Dog + Blonde Girl Pixel Sprite -->
+            <svg width="115" height="96" viewBox="0 0 32 26">
+              <!-- Corgi -->
+              <rect x="2" y="13" width="2" height="2" fill="#e68a2e"/>
+              <rect x="5" y="13" width="2" height="2" fill="#e68a2e"/>
+              <rect x="2" y="15" width="6" height="4" fill="#ffaa44"/>
+              <rect x="1" y="17" width="4" height="2" fill="#fff"/>
+              <rect x="3" y="16" width="1" height="1" fill="#111"/>
+              <rect x="4" y="19" width="7" height="4" fill="#ffaa44"/>
+              <rect x="4" y="23" width="2" height="3" fill="#fff"/>
+              <rect x="9" y="23" width="2" height="3" fill="#fff"/>
+
+              <!-- Girl -->
+              <rect x="19" y="2" width="6" height="2" fill="#ff52a8"/>
+              <rect x="18" y="4" width="8" height="6" fill="#ffe838"/>
+              <rect x="19" y="5" width="6" height="4" fill="#f7b98b"/>
+              <rect x="20" y="6" width="1" height="1" fill="#111"/>
+              <rect x="23" y="6" width="1" height="1" fill="#111"/>
+              <rect x="18" y="10" width="8" height="6" fill="#e60073"/>
+              <rect x="19" y="16" width="6" height="5" fill="#1e56d9"/>
+              <rect x="19" y="21" width="2" height="5" fill="#f7b98b"/>
+              <rect x="23" y="21" width="2" height="5" fill="#f7b98b"/>
+            </svg>
           </div>
 
-          <!-- "Music" Mini Player Speech Bubble -->
-          <div class="pixel-bubble tail-left-mid p-4 sm:p-5 w-full max-w-[290px] text-center">
-            <h3 class="font-pixel text-lg sm:text-xl font-bold text-[#111] mb-3">Music</h3>
-
-            <!-- Prev / Play-Pause / Next Pixel Circle Buttons -->
-            <div class="flex items-center justify-center gap-4 mb-3">
-              <button id="mini-prev-track" class="w-10 h-10 rounded-full border-4 border-[#1b1240] flex items-center justify-center hover:bg-[#efe6ff] active:scale-95 cursor-pointer" title="Previous Track">
-                <svg class="w-4 h-4 fill-[#1b1240]" viewBox="0 0 16 16">
-                  <polygon points="12,2 4,8 12,14"/>
-                </svg>
-              </button>
-
-              <button id="mini-play-pause" class="w-14 h-14 rounded-full border-4 border-[#1b1240] flex items-center justify-center hover:bg-[#efe6ff] active:scale-95 cursor-pointer" title="Play / Pause">
-                <!-- Pause Icon -->
-                <svg id="mini-icon-pause" class="w-6 h-6 fill-[#1b1240] hidden" viewBox="0 0 16 16">
-                  <rect x="3" y="2" width="4" height="12"/>
-                  <rect x="9" y="2" width="4" height="12"/>
-                </svg>
-                <!-- Play Icon -->
-                <svg id="mini-icon-play" class="w-6 h-6 fill-[#1b1240] ml-1" viewBox="0 0 16 16">
-                  <polygon points="3,2 14,8 3,14"/>
-                </svg>
-              </button>
-
-              <button id="mini-next-track" class="w-10 h-10 rounded-full border-4 border-[#1b1240] flex items-center justify-center hover:bg-[#efe6ff] active:scale-95 cursor-pointer" title="Next Track">
-                <svg class="w-4 h-4 fill-[#1b1240]" viewBox="0 0 16 16">
-                  <polygon points="4,2 12,8 4,14"/>
-                </svg>
-              </button>
+          <div class="pixel-bubble bubble-tail-music music-bubble">
+            <h2 class="bubble-title">Music</h2>
+            <div class="music-controls">
+              <button class="music-btn" id="btn-prev-track" title="Previous Track">◀</button>
+              <button class="music-btn play-main" id="btn-play-pause" title="Play / Pause">▶</button>
+              <button class="music-btn" id="btn-next-track" title="Next Track">▶</button>
             </div>
-
-            <!-- Current Track Title -->
-            <div id="mini-track-title" class="font-pixel text-xs sm:text-sm text-[#111] truncate px-2">
-              Angel Bite - TXT
-            </div>
-            <button id="btn-open-playlist-sub" class="mt-2 text-[10px] font-pixel underline text-[#591db5] hover:text-[#111] cursor-pointer">
-              Open Playlist &amp; Video Converter
-            </button>
+            <input type="text" class="track-title-display" id="current-track-label" value="Angel Bite - TXT" title="Click to edit Song Name - Singer" />
+            <button class="playlist-toggle-link" id="btn-open-playlist-inline">Open Playlist &amp; Converter</button>
           </div>
         </div>
       </div>
     </main>
 
-    <!-- Bottom Pixel Brick Floor -->
-    <div class="relative z-10 w-full h-8 bg-[#ff87ab] border-t-4 border-[#ffc2d4] grid grid-cols-12 mt-4">
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div class="border-r-4 border-[#b53864]"></div>
-      <div></div>
-    </div>
+    <!-- Decorative Side Neon Buildings & Brick Floor -->
+    <svg class="dash-building-left" viewBox="0 0 20 90" preserveAspectRatio="none">
+      <rect x="0" y="0" width="20" height="90" fill="#1b063d"/>
+      <rect x="2" y="10" width="14" height="65" fill="#15b8c9" stroke="#ff73d0" stroke-width="1.5"/>
+      <rect x="5" y="16" width="8" height="6" fill="#350e6e"/>
+      <rect x="5" y="26" width="8" height="6" fill="#350e6e"/>
+      <rect x="5" y="36" width="8" height="6" fill="#350e6e"/>
+      <rect x="5" y="46" width="8" height="6" fill="#350e6e"/>
+      <rect x="5" y="56" width="8" height="6" fill="#350e6e"/>
+    </svg>
+
+    <svg class="dash-building-right" viewBox="0 0 20 90" preserveAspectRatio="none">
+      <rect x="0" y="0" width="20" height="90" fill="#2b0c5e"/>
+      <rect x="4" y="14" width="6" height="6" fill="#ff73d0"/>
+      <rect x="12" y="14" width="6" height="6" fill="#24d8ff"/>
+      <rect x="4" y="26" width="6" height="6" fill="#24d8ff"/>
+      <rect x="12" y="26" width="6" height="6" fill="#ffe838"/>
+      <rect x="4" y="38" width="6" height="6" fill="#ff73d0"/>
+      <rect x="12" y="38" width="6" height="6" fill="#24d8ff"/>
+    </svg>
+
+    <div class="dash-brick-floor"></div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- SCREEN 4: SCROLLABLE INTERACTIVE PDF READER                           -->
-  <!-- ===================================================================== -->
-  <section id="screen-reader" class="hidden fixed inset-0 z-40 bg-[#18072e] flex flex-col">
-    <!-- Top Reader Toolbar -->
-    <div class="bg-[#290b4f] border-b-4 border-[#0a0414] px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg">
-      <!-- Left: Back to Library + Editable PDF Name -->
-      <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-[200px]">
-        <button id="btn-reader-back" class="win95-btn px-3 py-1.5 font-pixel text-xs sm:text-sm font-bold cursor-pointer shrink-0">
-          ← LIBRARY
-        </button>
-
-        <div class="flex items-center bg-[#140529] border-2 border-[#8c52ff] rounded px-2.5 py-1 flex-1 max-w-md">
-          <span class="text-[#ffe94d] text-xs mr-2" title="Editable PDF Name">✎</span>
-          <input
-            id="reader-book-title"
-            type="text"
-            value="Book Title"
-            title="Click to rename this PDF"
-            class="w-full bg-transparent text-white font-pixel text-xs sm:text-sm focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <!-- Center: Rating Hearts + Favourite Crown + Finish Toggle -->
-      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-        <!-- 5-Heart Rating -->
-        <div id="reader-rating-stars" class="flex items-center gap-1 bg-[#140529] border-2 border-[#4d2680] rounded px-2 py-1" title="Rate this book">
-          <!-- Hearts populated by JS -->
-        </div>
-
-        <!-- Set as Favourite Book -->
-        <button id="btn-reader-fav" class="px-2.5 py-1.5 rounded border-2 border-[#ffd43b] bg-[#140529] text-[#ffd43b] font-pixel text-xs hover:bg-[#ffd43b] hover:text-[#140529] transition-colors cursor-pointer" title="Set as Favourite Book">
-          👑 FAV
-        </button>
-
-        <!-- Toggle In Progress / Finish -->
-        <button id="btn-reader-finish" class="px-2.5 py-1.5 rounded border-2 border-[#4dff94] bg-[#140529] text-[#4dff94] font-pixel text-xs hover:bg-[#4dff94] hover:text-[#140529] transition-colors cursor-pointer">
-          ✓ MARK FINISH
-        </button>
-      </div>
-
-      <!-- Right: Zoom Controls + Persistent Mini Music Toggle -->
-      <div class="flex items-center gap-2">
-        <button id="btn-zoom-out" class="bg-[#3d1473] hover:bg-[#521d99] border-2 border-white/30 px-2.5 py-1 font-arcade text-xs rounded cursor-pointer">-</button>
-        <span id="reader-zoom-label" class="font-pixel text-xs w-11 text-center">100%</span>
-        <button id="btn-zoom-in" class="bg-[#3d1473] hover:bg-[#521d99] border-2 border-white/30 px-2.5 py-1 font-arcade text-xs rounded cursor-pointer">+</button>
-
-        <button id="btn-reader-music-toggle" class="ml-1 bg-[#ff3b8d] hover:bg-[#ff5ca1] text-white border-2 border-[#111] px-2.5 py-1 rounded font-pixel text-xs cursor-pointer flex items-center gap-1" title="Play/Pause Background Music">
-          <span>♪</span>
-          <span id="reader-music-status" class="hidden sm:inline">BGM</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Second Sub-Toolbar: Mark Line Highlighter & Reading Filters -->
-    <div class="bg-[#1e083b] border-b-2 border-[#3b156e] px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-      <!-- Mark Line / Last Sentence Read Controls -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <button id="btn-toggle-markline" class="px-3 py-1 rounded border-2 border-[#ffe94d] bg-[#ffe94d] text-[#140529] font-pixel font-bold cursor-pointer flex items-center gap-1.5">
-          <span>🖍</span>
-          <span id="markline-mode-label">Mark Last Line: ON</span>
-        </button>
-
-        <button id="btn-jump-lastline" class="px-2.5 py-1 rounded border-2 border-[#ff3b8d] bg-[#2e0c4d] text-[#ff85b8] hover:bg-[#ff3b8d] hover:text-white font-pixel cursor-pointer">
-          ↓ Jump to Marked Line
-        </button>
-
-        <button id="btn-clear-lines" class="px-2.5 py-1 rounded border border-white/30 text-white/75 hover:text-white font-pixel cursor-pointer">
-          Clear Marks
-        </button>
-      </div>
-
-      <!-- Reading Filters -->
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="font-pixel text-white/70 mr-1">Filter:</span>
-        <button data-filter="normal" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#6722b8] text-white font-pixel cursor-pointer">Normal</button>
-        <button data-filter="sepia" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-[#f5deb3] font-pixel cursor-pointer">Warm</button>
-        <button data-filter="amber" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-[#ffb84d] font-pixel cursor-pointer">Amber</button>
-        <button data-filter="dark" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-[#a5d8ff] font-pixel cursor-pointer">Night</button>
-        <button data-filter="contrast" class="filter-chip px-2 py-1 rounded border border-white/40 bg-[#2b0d52] text-white font-pixel cursor-pointer">Crisp</button>
-      </div>
-    </div>
-
-    <!-- Helper Tip Banner -->
-    <div class="bg-[#120424] text-[#d0bfff] text-[11px] font-pixel px-4 py-1 text-center border-b border-white/10">
-      Scroll smoothly through all pages • Click anywhere on a sentence/line to place your <span class="text-[#ffe94d]">Last Read Line Marker</span>!
-    </div>
-
-    <!-- Continuous Vertical Scrollable PDF Container -->
-    <div id="pdf-scroll-container" class="flex-1 overflow-y-auto px-3 sm:px-8 py-6 bg-[#100421]">
-      <div id="pdf-pages-wrapper" class="filter-normal max-w-4xl mx-auto flex flex-col items-center">
-        <!-- All PDF pages rendered vertically here -->
-      </div>
-    </div>
-
-    <!-- Bottom Scroll Progress Indicator -->
-    <div class="bg-[#290b4f] border-t-2 border-[#0a0414] px-4 py-1.5 flex items-center justify-between text-xs font-pixel">
-      <span id="reader-page-indicator">Page 1 of 1</span>
-      <div class="w-40 sm:w-64 h-3 bg-[#120424] border border-white/30 rounded overflow-hidden">
-        <div id="reader-progress-bar" class="h-full bg-[#4dff94] w-0 transition-all"></div>
-      </div>
-      <span id="reader-percent-label">0%</span>
-    </div>
-  </section>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 1: THEME COLOUR SWITCHER                                        -->
-  <!-- ===================================================================== -->
-  <div id="modal-theme" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-    <div class="win95-box w-full max-w-md">
-      <div class="win95-titlebar px-4 py-2.5 flex items-center justify-between">
-        <span class="font-arcade text-xs sm:text-sm text-white">THEME COLOUR</span>
-        <button id="btn-close-theme" class="win95-btn px-2 py-0.5 font-arcade text-xs cursor-pointer">X</button>
-      </div>
-      <div class="p-5 text-[#111] flex flex-col gap-4">
-        <p class="font-pixel text-sm">Choose an arcade palette or pick your custom background colour:</p>
-
-        <div class="grid grid-cols-2 gap-3">
-          <button data-theme-bg="#441082" data-theme-bubble="#ffffff" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
-            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#441082"></span>
-            <span class="font-pixel text-xs font-bold">Cosmic Purple</span>
-          </button>
-          <button data-theme-bg="#0d2b6b" data-theme-bubble="#ffffff" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
-            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#0d2b6b"></span>
-            <span class="font-pixel text-xs font-bold">Cyber Midnight</span>
-          </button>
-          <button data-theme-bg="#8f1d58" data-theme-bubble="#fff8fc" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
-            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#8f1d58"></span>
-            <span class="font-pixel text-xs font-bold">Synthwave Pink</span>
-          </button>
-          <button data-theme-bg="#194d33" data-theme-bubble="#f4ffea" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
-            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#194d33"></span>
-            <span class="font-pixel text-xs font-bold">GameBoy Forest</span>
-          </button>
-          <button data-theme-bg="#7a1616" data-theme-bubble="#ffffff" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
-            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#7a1616"></span>
-            <span class="font-pixel text-xs font-bold">Crimson Arcade</span>
-          </button>
-          <button data-theme-bg="#1b1d29" data-theme-bubble="#f1f3f5" class="theme-preset-btn win95-btn p-2.5 flex items-center gap-2.5 cursor-pointer text-left">
-            <span class="w-6 h-6 rounded border-2 border-black shrink-0" style="background:#1b1d29"></span>
-            <span class="font-pixel text-xs font-bold">Obsidian Night</span>
-          </button>
-        </div>
-
-        <div class="flex items-center justify-between bg-[#a8a8a8] p-3 border-2 border-[#444]">
-          <label for="custom-theme-picker" class="font-pixel text-xs font-bold">Custom Hex Colour:</label>
-          <input id="custom-theme-picker" type="color" value="#441082" class="w-12 h-8 border-2 border-black cursor-pointer" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 2: BACKGROUND MUSIC PLAYLIST & VIDEO-TO-AUDIO CONVERTER         -->
-  <!-- ===================================================================== -->
-  <div id="modal-music" class="hidden fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-    <div class="win95-box w-full max-w-xl max-h-[90vh] flex flex-col">
-      <div class="win95-titlebar px-4 py-2.5 flex items-center justify-between">
-        <span class="font-arcade text-xs sm:text-sm text-white">BGM PLAYLIST &amp; VIDEO CONVERTER</span>
-        <button id="btn-close-music" class="win95-btn px-2 py-0.5 font-arcade text-xs cursor-pointer">X</button>
-      </div>
-
-      <div class="p-4 sm:p-5 text-[#111] overflow-y-auto flex flex-col gap-4">
-        <!-- Upload Audio or Video Box -->
-        <div class="bg-[#d6d6d6] border-2 border-[#555] p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>
-            <h4 class="font-pixel font-bold text-sm">Upload Audio or Video</h4>
-            <p class="font-pixel text-xs text-[#333]">Supports MP3, WAV, OGG, or MP4/WEBM/MOV (auto-converts video to audio!)</p>
-          </div>
-          <label for="upload-media-input" class="win95-btn px-4 py-2 font-pixel text-xs font-bold cursor-pointer shrink-0 bg-[#ffe94d]">
-            + ADD MEDIA
-          </label>
-          <input id="upload-media-input" type="file" accept="audio/*,video/*" multiple class="hidden" />
-        </div>
-
-        <!-- Video-to-Audio Conversion Progress Bar -->
-        <div id="converter-status-box" class="hidden bg-[#18072e] text-[#ffe94d] border-4 border-[#111] p-3">
-          <div class="flex justify-between font-pixel text-xs mb-1.5">
-            <span id="converter-label">Converting Video to Audio WAV...</span>
-            <span id="converter-percent">0%</span>
-          </div>
-          <div class="w-full h-4 bg-[#341261] border-2 border-white">
-            <div id="converter-bar" class="h-full bg-[#4dff94] w-0 transition-all"></div>
-          </div>
-        </div>
-
-        <!-- Player Controls + Volume -->
-        <div class="bg-[#1b0933] text-white border-4 border-[#111] p-3.5 flex flex-col gap-3">
-          <div class="flex items-center justify-between gap-2">
-            <div class="truncate">
-              <span class="text-[10px] text-[#ffe94d] font-arcade block">NOW PLAYING</span>
-              <span id="modal-now-playing" class="font-pixel text-sm sm:text-base">Angel Bite - TXT (Chiptune)</span>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <button id="modal-btn-prev" class="win95-btn px-2.5 py-1 font-pixel text-xs font-bold cursor-pointer">⏮</button>
-              <button id="modal-btn-play" class="win95-btn px-3.5 py-1 font-pixel text-xs font-bold cursor-pointer">▶ / ❚❚</button>
-              <button id="modal-btn-next" class="win95-btn px-2.5 py-1 font-pixel text-xs font-bold cursor-pointer">⏭</button>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 text-xs font-pixel">
-            <span>VOL</span>
-            <input id="bgm-volume-slider" type="range" min="0" max="1" step="0.05" value="0.65" class="flex-1 accent-[#ffe94d] cursor-pointer" />
-          </div>
-        </div>
-
-        <!-- Playlist Queue -->
-        <div>
-          <h4 class="font-pixel font-bold text-sm mb-2">Playlist Tracks</h4>
-          <div id="playlist-items-container" class="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
-            <!-- Tracks rendered by JS -->
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hidden HTML5 Audio Element for Uploaded / Converted BGM -->
-  <audio id="bgm-audio-player" preload="auto"></audio>
-
-  <script>
-    // =========================================================================
-    // 1. INITIALIZATION & PIXEL MATRIX LOGO RENDERER (">E-BOOKZ<")
-    // =========================================================================
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    function renderPixelMatrixLogo() {
-      const container = document.getElementById('pixel-logo-banner');
-      if (!container) return;
-
-      // 5x7 Pixel Bitmaps for ">E-BOOKZ<"
-      const glyphs = {
-        '>': [
-          '1000',
-          '0100',
-          '0010',
-          '0001',
-          '0010',
-          '0100',
-          '1000'
-        ],
-        'E': [
-          '11111',
-          '10000',
-          '10000',
-          '11110',
-          '10000',
-          '10000',
-          '11111'
-        ],
-        '-': [
-          '0000',
-          '0000',
-          '0000',
-          '1111',
-          '0000',
-          '0000',
-          '0000'
-        ],
-        'B': [
-          '11110',
-          '10001',
-          '10001',
-          '11110',
-          '10001',
-          '10001',
-          '11110'
-        ],
-        'O': [
-          '01110',
-          '10001',
-          '10001',
-          '10001',
-          '10001',
-          '10001',
-          '01110'
-        ],
-        'K': [
-          '10001',
-          '10010',
-          '10100',
-          '11000',
-          '10100',
-          '10010',
-          '10001'
-        ],
-        'Z': [
-          '11111',
-          '00001',
-          '00010',
-          '00100',
-          '01000',
-          '10000',
-          '11111'
-        ],
-        '<': [
-          '0001',
-          '0010',
-          '0100',
-          '1000',
-          '0100',
-          '0010',
-          '0001'
-        ]
-      };
-
-      const word = '>E-BOOKZ<';
-      const cell = 11;
-      const gap = 1;
-      const letterSpacing = 12;
-      let totalWidth = 0;
-
-      for (const ch of word) {
-        totalWidth += glyphs[ch][0].length * (cell + gap) + letterSpacing;
-      }
-      totalWidth -= letterSpacing;
-      const totalHeight = 7 * (cell + gap);
-
-      let svgCells = '';
-      let cursorX = 0;
-
-      for (const ch of word) {
-        const matrix = glyphs[ch];
-        const rows = matrix.length;
-        const cols = matrix[0].length;
-        const isBracketOrDash = ch === '>' || ch === '<' || ch === '-';
-
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            if (matrix[r][c] === '1') {
-              const x = cursorX + c * (cell + gap);
-              const y = r * (cell + gap);
-              // Lavender outer pixel frame + bright yellow pixel cell (matching Mockup 1)
-              const fill = isBracketOrDash ? '#ffe94d' : '#ffea38';
-              const stroke = '#9366ff';
-              svgCells += `<rect x="${x - 3}" y="${y - 3}" width="${cell + 6}" height="${cell + 6}" fill="${stroke}" />`;
-              svgCells += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="${fill}" stroke="#7842e8" stroke-width="1.2" />`;
-            }
-          }
-        }
-        cursorX += cols * (cell + gap) + letterSpacing;
-      }
-
-      container.innerHTML = `
-        <svg viewBox="-6 -6 ${totalWidth + 12} ${totalHeight + 12}" class="w-full h-auto max-h-28 sm:max-h-36 mx-auto drop-shadow-[0_6px_0_#24064a]">
-          ${svgCells}
-        </svg>
-      `;
-    }
-
-    // =========================================================================
-    // 2. INDEXEDDB STORAGE FOR PDFs, AUDIO/VIDEO BLOBS & BOOK METADATA
-    // =========================================================================
-    const DB_NAME = 'EBookzArcadeDB';
-    const DB_VERSION = 1;
-    let db = null;
-
-    function openDB() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = (e) => {
-          const database = e.target.result;
-          if (!database.objectStoreNames.contains('books')) {
-            database.createObjectStore('books', { keyPath: 'id' });
-          }
-          if (!database.objectStoreNames.contains('tracks')) {
-            database.createObjectStore('tracks', { keyPath: 'id' });
-          }
-        };
-        req.onsuccess = (e) => {
-          db = e.target.result;
-          resolve(db);
-        };
-        req.onerror = (e) => reject(e.target.error);
-      });
-    }
-
-    function dbPut(storeName, item) {
-      return new Promise((resolve, reject) => {
-        if (!db) return resolve();
-        const tx = db.transaction(storeName, 'readwrite');
-        tx.objectStore(storeName).put(item);
-        tx.oncomplete = () => resolve();
-        tx.onerror = (e) => reject(e.target.error);
-      });
-    }
-
-    function dbGetAll(storeName) {
-      return new Promise((resolve, reject) => {
-        if (!db) return resolve([]);
-        const tx = db.transaction(storeName, 'readonly');
-        const req = tx.objectStore(storeName).getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = (e) => reject(e.target.error);
-      });
-    }
-
-    function dbDelete(storeName, id) {
-      return new Promise((resolve, reject) => {
-        if (!db) return resolve();
-        const tx = db.transaction(storeName, 'readwrite');
-        tx.objectStore(storeName).delete(id);
-        tx.oncomplete = () => resolve();
-        tx.onerror = (e) => reject(e.target.error);
-      });
-    }
-
-    // =========================================================================
-    // 3. APPLICATION STATE
-    // =========================================================================
-    const state = {
-      username: localStorage.getItem('ebookz_username') || 'ADAM',
-      avatarDataUrl: localStorage.getItem('ebookz_avatar') || '',
-      themeBg: localStorage.getItem('ebookz_theme_bg') || '#441082',
-      themeBubble: localStorage.getItem('ebookz_theme_bubble') || '#ffffff',
-      books: [],
-      progressOffset: 0,
-      finishOffset: 0,
-      activeBookId: null,
-      pdfDoc: null,
-      zoom: 1.15,
-      markLineMode: true,
-      readingFilter: 'normal',
-      tracks: [],
-      currentTrackIndex: 0,
-      isPlaying: false
-    };
-
-    function showToast(msg, icon = '★') {
-      const box = document.getElementById('toast-box');
-      document.getElementById('toast-msg').textContent = msg;
-      document.getElementById('toast-icon').textContent = icon;
-      box.classList.remove('hidden');
-      clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(() => {
-        box.classList.add('hidden');
-      }, 2800);
-    }
-
-    // =========================================================================
-    // 4. BUILT-IN SAMPLE RETRO GUIDE PDF GENERATOR (SO IT WORKS IMMEDIATELY)
-    // =========================================================================
-    async function createDefaultWelcomeBook() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-      // Page 1
-      doc.setFillColor(44, 10, 89);
-      doc.rect(0, 0, 595, 842, 'F');
-      doc.setTextColor(255, 233, 77);
-      doc.setFont('courier', 'bold');
-      doc.setFontSize(28);
-      doc.text('WELCOME TO >E-BOOKZ<', 60, 110);
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(14);
-      const p1Lines = [
-        'Quest Log #001: Getting Started with Your Retro Reader',
-        '',
-        '1. SCROLLABLE PDF ENGINE:',
-        '   Scroll smoothly through every page continuously without',
-        '   pressing next-page buttons. Your scroll progress is saved!',
-        '',
-        '2. MARK LAST LINE READ (HIGHLIGHTER):',
-        '   Click anywhere on a sentence or line while reading to drop',
-        '   a glowing neon marker bar so you never lose your spot.',
-        '',
-        '3. EYE-COMFORT READING FILTERS:',
-        '   Switch between Normal, Warm Sepia, Amber, Night, or Crisp',
-        '   modes in the top bar for late-night reading quests.',
-        '',
-        '4. CUSTOMIZE EVERYTHING:',
-        '   - Click any book title to rename your PDF.',
-        '   - Rate books with 1-5 hearts & crown your Favourite book.',
-        '   - Upload MP3s or MP4 videos (auto-converted to audio BGM!).'
-      ];
-      doc.text(p1Lines, 60, 170);
-
-      // Page 2
-      doc.addPage();
-      doc.setFillColor(255, 252, 240);
-      doc.rect(0, 0, 595, 842, 'F');
-      doc.setTextColor(40, 15, 75);
-      doc.setFontSize(22);
-      doc.text('CHAPTER 2: THE PIXEL LIBRARY', 60, 90);
-      doc.setFontSize(13);
-      const p2Lines = [
-        'Try clicking right on this sentence to mark it as your',
-        'last read line!',
-        '',
-        'When you close the reader and reopen this book later,',
-        'E-BOOKZ remembers your exact scroll position, highlights,',
-        'rating, and completion status.',
-        '',
-        'Upload your own PDFs anytime by clicking the white',
-        'Space Invader icon ("Upload pdf") in the top-right corner',
-        'of your dashboard.'
-      ];
-      doc.text(p2Lines, 60, 150);
-
-      const arrayBuffer = doc.output('arraybuffer');
-      const thumbDataUrl = await generatePdfThumbnail(arrayBuffer);
-
-      const sampleBook = {
-        id: 'book-welcome-guide',
-        title: 'E-BOOKZ Quest Guide',
-        pdfData: arrayBuffer,
-        thumbnail: thumbDataUrl,
-        rating: 5,
-        isFavourite: true,
-        isFinished: false,
-        scrollTop: 0,
-        progressPct: 15,
-        filter: 'normal',
-        highlights: [
-          { id: 'hl-init', pageNum: 1, yPct: 37, isLast: true }
-        ],
-        createdAt: Date.now()
-      };
-
-      await dbPut('books', sampleBook);
-      return sampleBook;
-    }
-
-    async function generatePdfThumbnail(arrayBuffer) {
-      try {
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
-        const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 0.45 });
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        return canvas.toDataURL('image/jpeg', 0.8);
-      } catch (err) {
-        console.warn('Thumbnail generation fallback:', err);
-        return '';
-      }
-    }
-
-    // =========================================================================
-    // 5. NAVIGATION & PROFILE & THEME MANAGEMENT
-    // =========================================================================
-    function switchScreen(screenName) {
-      ['screen-landing', 'screen-signin', 'screen-dashboard', 'screen-reader'].forEach((id) => {
-        document.getElementById(id).classList.add('hidden');
-      });
-      document.getElementById(screenName).classList.remove('hidden');
-    }
-
-    function applyTheme(bgHex, bubbleHex = '#ffffff') {
-      state.themeBg = bgHex;
-      state.themeBubble = bubbleHex;
-      document.documentElement.style.setProperty('--bg-primary', bgHex);
-      document.documentElement.style.setProperty('--bubble-bg', bubbleHex);
-      localStorage.setItem('ebookz_theme_bg', bgHex);
-      localStorage.setItem('ebookz_theme_bubble', bubbleHex);
-      document.getElementById('custom-theme-picker').value = bgHex;
-    }
-
-    function updateProfileUI() {
-      const nameClean = (state.username || 'ADAM').trim().toUpperCase();
-      state.username = nameClean;
-      localStorage.setItem('ebookz_username', nameClean);
-      document.getElementById('dashboard-username-input').value = nameClean;
-      document.getElementById('input-username').value = nameClean;
-
-      const img = document.getElementById('profile-avatar-img');
-      const fallback = document.getElementById('profile-avatar-fallback');
-      if (state.avatarDataUrl) {
-        img.src = state.avatarDataUrl;
-        img.classList.remove('hidden');
-        fallback.classList.add('hidden');
-      } else {
-        img.classList.add('hidden');
-        fallback.classList.remove('hidden');
-      }
-    }
-
-    // =========================================================================
-    // 6. DASHBOARD BOOK CARDS RENDERING (In Progress, Finish, Favourite)
-    // =========================================================================
-    function createBookCardElement(book, compact = false) {
-      const card = document.createElement('div');
-      card.className =
-        'group relative flex flex-col items-center bg-[#f4f7ff] border-4 border-[#1b1236] rounded-xl p-2 shadow-[4px_4px_0_#1b1236] hover:-translate-y-1 transition-transform';
-
-      // Cover Thumbnail (Clickable to Open Scrollable Reader)
-      const coverWrap = document.createElement('div');
-      coverWrap.className =
-        'relative w-full aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#1b1236] cursor-pointer bg-gradient-to-b from-[#bce8ff] via-[#e3f6ff] to-[#87b81d] flex items-center justify-center';
-      coverWrap.title = 'Click to read PDF';
-
-      if (book.thumbnail) {
-        const img = document.createElement('img');
-        img.src = book.thumbnail;
-        img.alt = book.title;
-        img.className = 'w-full h-full object-cover';
-        coverWrap.appendChild(img);
-      } else {
-        coverWrap.innerHTML = `<span class="font-arcade text-xs text-[#1b1236] text-center px-2">PDF</span>`;
-      }
-
-      // Hover "READ" badge
-      const hoverOverlay = document.createElement('div');
-      hoverOverlay.className =
-        'absolute inset-0 bg-[#18072e]/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2';
-      hoverOverlay.innerHTML = `
-        <span class="bg-[#ffe94d] text-[#18072e] font-arcade text-[10px] px-2.5 py-1 border-2 border-black">READ</span>
-        <span class="text-white font-pixel text-[11px]">${book.progressPct || 0}% read</span>
-      `;
-      coverWrap.appendChild(hoverOverlay);
-      coverWrap.addEventListener('click', () => openPdfReader(book.id));
-
-      // Quick Favourite Crown Toggle Button (Top-Left of Cover)
-      const favBtn = document.createElement('button');
-      favBtn.className = `absolute top-1.5 left-1.5 z-10 w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-xs cursor-pointer ${
-        book.isFavourite ? 'bg-[#ffd43b] text-black' : 'bg-white/85 text-gray-500 hover:text-black'
-      }`;
-      favBtn.title = book.isFavourite ? 'Favourite Book' : 'Set as Favourite Book';
-      favBtn.textContent = '👑';
-      favBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleFavouriteBook(book.id);
-      });
-
-      // Quick Finish Toggle Button (Top-Right of Cover)
-      const finBtn = document.createElement('button');
-      finBtn.className = `absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-xs cursor-pointer ${
-        book.isFinished ? 'bg-[#4dff94] text-black' : 'bg-white/85 text-gray-600 hover:text-black'
-      }`;
-      finBtn.title = book.isFinished ? 'Move back to In Progress' : 'Mark as Finished';
-      finBtn.textContent = '✓';
-      finBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleFinishedBook(book.id);
-      });
-
-      // Editable PDF Name Input
-      const titleInput = document.createElement('input');
-      titleInput.type = 'text';
-      titleInput.value = book.title;
-      titleInput.title = 'Click to edit PDF name';
-      titleInput.className =
-        'mt-2 w-full text-center font-pixel text-xs font-bold text-[#111] bg-transparent border-b border-transparent hover:border-[#6722b8] focus:border-[#6722b8] focus:bg-white focus:outline-none px-1 truncate';
-      titleInput.addEventListener('change', async (e) => {
-        const newName = e.target.value.trim() || 'Untitled PDF';
-        book.title = newName;
-        e.target.value = newName;
-        await dbPut('books', book);
-        renderDashboardBooks();
-        showToast(`Renamed to "${newName}"`, '✎');
-      });
-
-      // 5-Heart Rating Bar
-      const starsRow = document.createElement('div');
-      starsRow.className = 'flex items-center justify-center gap-0.5 mt-1';
-      for (let i = 1; i <= 5; i++) {
-        const star = document.createElement('button');
-        star.type = 'button';
-        star.className = `text-xs cursor-pointer transition-transform hover:scale-125 ${
-          i <= (book.rating || 0) ? 'text-[#ff3b6b]' : 'text-gray-300'
-        }`;
-        star.textContent = '♥';
-        star.title = `Rate ${i}/5`;
-        star.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          book.rating = i;
-          await dbPut('books', book);
-          renderDashboardBooks();
-        });
-        starsRow.appendChild(star);
-      }
-
-      // Progress Bar
-      const progTrack = document.createElement('div');
-      progTrack.className = 'w-full h-2 bg-[#d7d0e8] rounded-full overflow-hidden mt-1.5 border border-[#1b1236]';
-      const progFill = document.createElement('div');
-      progFill.className = `h-full ${book.isFinished ? 'bg-[#37b24d]' : 'bg-[#7950f2]'}`;
-      progFill.style.width = `${book.isFinished ? 100 : book.progressPct || 0}%`;
-      progTrack.appendChild(progFill);
-
-      card.appendChild(coverWrap);
-      card.appendChild(favBtn);
-      card.appendChild(finBtn);
-      card.appendChild(titleInput);
-      card.appendChild(starsRow);
-      if (!compact) card.appendChild(progTrack);
-
-      return card;
-    }
-
-    function renderDashboardBooks() {
-      const inProgressBooks = state.books.filter((b) => !b.isFinished);
-      const finishedBooks = state.books.filter((b) => b.isFinished);
-      const favBook = state.books.find((b) => b.isFavourite) || state.books[0] || null;
-
-      document.getElementById('inprogress-count').textContent = `${inProgressBooks.length} book${inProgressBooks.length === 1 ? '' : 's'}`;
-      document.getElementById('finish-count').textContent = `${finishedBooks.length} book${finishedBooks.length === 1 ? '' : 's'}`;
-
-      // Render In Progress (up to 3 visible in carousel)
-      const progGrid = document.getElementById('inprogress-grid');
-      progGrid.innerHTML = '';
-      if (inProgressBooks.length === 0) {
-        progGrid.innerHTML = `
-          <div class="col-span-3 py-8 text-center font-pixel text-xs text-gray-500">
-            No books in progress. Click the Space Invader icon above to upload a PDF!
-          </div>`;
-      } else {
-        if (state.progressOffset >= inProgressBooks.length) state.progressOffset = 0;
-        const visible = [];
-        const count = Math.min(3, inProgressBooks.length);
-        for (let i = 0; i < count; i++) {
-          visible.push(inProgressBooks[(state.progressOffset + i) % inProgressBooks.length]);
-        }
-        visible.forEach((book) => progGrid.appendChild(createBookCardElement(book)));
-      }
-
-      // Render Finish (up to 3 visible in carousel)
-      const finGrid = document.getElementById('finish-grid');
-      finGrid.innerHTML = '';
-      if (finishedBooks.length === 0) {
-        finGrid.innerHTML = `
-          <div class="col-span-3 py-8 text-center font-pixel text-xs text-gray-500">
-            No finished books yet. Click ✓ on any book when done!
-          </div>`;
-      } else {
-        if (state.finishOffset >= finishedBooks.length) state.finishOffset = 0;
-        const visible = [];
-        const count = Math.min(3, finishedBooks.length);
-        for (let i = 0; i < count; i++) {
-          visible.push(finishedBooks[(state.finishOffset + i) % finishedBooks.length]);
-        }
-        visible.forEach((book) => finGrid.appendChild(createBookCardElement(book)));
-      }
-
-      // Render Favourite Book Slot
-      const favSlot = document.getElementById('favourite-book-slot');
-      favSlot.innerHTML = '';
-      if (favBook) {
-        favSlot.appendChild(createBookCardElement(favBook, true));
-      } else {
-        favSlot.innerHTML = `<div class="py-8 font-pixel text-xs text-gray-500">Upload a PDF to crown your favourite!</div>`;
-      }
-    }
-
-    async function toggleFavouriteBook(bookId) {
-      for (const b of state.books) {
-        b.isFavourite = b.id === bookId;
-        await dbPut('books', b);
-      }
-      renderDashboardBooks();
-      const chosen = state.books.find((b) => b.id === bookId);
-      if (chosen) showToast(`Crowned "${chosen.title}" as Favourite!`, '👑');
-    }
-
-    async function toggleFinishedBook(bookId) {
-      const book = state.books.find((b) => b.id === bookId);
-      if (!book) return;
-      book.isFinished = !book.isFinished;
-      if (book.isFinished) book.progressPct = 100;
-      await dbPut('books', book);
-      renderDashboardBooks();
-      showToast(book.isFinished ? `Moved "${book.title}" to Finish!` : `Moved "${book.title}" back to In Progress`, '✓');
-    }
-
-    // Handle PDF File Uploads
-    async function handlePdfUpload(files) {
-      if (!files || files.length === 0) return;
-      showToast('Loading PDF into library...', '👾');
-
-      for (const file of files) {
-        const buffer = await file.arrayBuffer();
-        const thumb = await generatePdfThumbnail(buffer);
-        const cleanTitle = file.name.replace(/\.pdf$/i, '');
-
-        const newBook = {
-          id: 'book-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-          title: cleanTitle,
-          pdfData: buffer,
-          thumbnail: thumb,
-          rating: 0,
-          isFavourite: state.books.length === 0,
-          isFinished: false,
-          scrollTop: 0,
-          progressPct: 0,
-          filter: 'normal',
-          highlights: [],
-          createdAt: Date.now()
-        };
-
-        state.books.unshift(newBook);
-        await dbPut('books', newBook);
-      }
-
-      renderDashboardBooks();
-      showToast(`Uploaded ${files.length} PDF${files.length > 1 ? 's' : ''}!`, '★');
-    }
-
-    // =========================================================================
-    // 7. SCROLLABLE PDF READER + MARK LINE HIGHLIGHTER + FILTERS
-    // =========================================================================
-    async function openPdfReader(bookId) {
-      const book = state.books.find((b) => b.id === bookId);
-      if (!book) return;
-
-      state.activeBookId = book.id;
-      state.readingFilter = book.filter || 'normal';
-      switchScreen('screen-reader');
-
-      // Populate Header Controls
-      document.getElementById('reader-book-title').value = book.title;
-      updateReaderRatingUI(book);
-      updateReaderFavAndFinishUI(book);
-      applyReadingFilter(state.readingFilter);
-
-      const wrapper = document.getElementById('pdf-pages-wrapper');
-      wrapper.innerHTML = `<div class="py-20 font-arcade text-sm text-[#ffe94d]">LOADING PAGES...</div>`;
-
-      try {
-        const loadingTask = pdfjsLib.getDocument({ data: book.pdfData.slice(0) });
-        state.pdfDoc = await loadingTask.promise;
-        await renderAllPdfPages(book);
-
-        // Restore saved scroll position
-        const scrollContainer = document.getElementById('pdf-scroll-container');
-        requestAnimationFrame(() => {
-          scrollContainer.scrollTop = book.scrollTop || 0;
-          updateScrollMetrics();
-        });
-      } catch (err) {
-        console.error(err);
-        wrapper.innerHTML = `<div class="py-20 font-pixel text-red-400">Error rendering PDF file.</div>`;
-      }
-    }
-
-    async function renderAllPdfPages(book) {
-      const wrapper = document.getElementById('pdf-pages-wrapper');
-      wrapper.innerHTML = '';
-      document.getElementById('reader-zoom-label').textContent = `${Math.round((state.zoom / 1.15) * 100)}%`;
-
-      const numPages = state.pdfDoc.numPages;
-
-      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-        const page = await state.pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: state.zoom });
-
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'pdf-page-wrapper';
-        pageDiv.dataset.pageNum = pageNum;
-        pageDiv.style.width = `${viewport.width}px`;
-        pageDiv.style.height = `${viewport.height}px`;
-        pageDiv.style.maxWidth = '100%';
-
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        canvas.style.width = '100%';
-        canvas.style.height = 'auto';
-        canvas.style.display = 'block';
-
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        pageDiv.appendChild(canvas);
-
-        // Render saved line highlights on this page
-        const pageHighlights = (book.highlights || []).filter((h) => h.pageNum === pageNum);
-        pageHighlights.forEach((hl) => {
-          pageDiv.appendChild(createHighlightMarkerElement(book, hl));
-        });
-
-        // Click on PDF page to place/move the "Last Sentence Read" marker line
-        pageDiv.addEventListener('click', async (e) => {
-          if (!state.markLineMode) return;
-          if (e.target.classList.contains('line-highlight-bar')) return;
-
-          const rect = pageDiv.getBoundingClientRect();
-          const yPct = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
-
-          // Demote previous "last" marker to a regular green note line or replace it
-          book.highlights = (book.highlights || []).filter((h) => !h.isLast);
-          book.highlights.push({
-            id: 'hl-' + Date.now(),
-            pageNum,
-            yPct,
-            isLast: true
-          });
-
-          await dbPut('books', book);
-          // Re-render markers on all pages
-          document.querySelectorAll('.line-highlight-bar').forEach((el) => el.remove());
-          document.querySelectorAll('.pdf-page-wrapper').forEach((pDiv) => {
-            const pN = Number(pDiv.dataset.pageNum);
-            (book.highlights || [])
-              .filter((h) => h.pageNum === pN)
-              .forEach((hl) => pDiv.appendChild(createHighlightMarkerElement(book, hl)));
-          });
-
-          showToast(`Marked last read line on Page ${pageNum}!`, '🖍');
-        });
-
-        wrapper.appendChild(pageDiv);
-      }
-    }
-
-    function createHighlightMarkerElement(book, hl) {
-      const bar = document.createElement('div');
-      bar.className = `line-highlight-bar ${hl.isLast ? 'line-highlight-last' : 'line-highlight-note'}`;
-      bar.style.top = `${hl.yPct}%`;
-      bar.title = hl.isLast ? 'Last Sentence Read (Click to remove)' : 'Highlighted Line (Click to remove)';
-
-      if (hl.isLast) {
-        const tag = document.createElement('span');
-        tag.className =
-          'absolute -top-5 right-1 bg-[#ff3b8d] text-white font-pixel text-[10px] px-1.5 py-0.5 rounded shadow';
-        tag.textContent = '◀ LAST LINE READ';
-        bar.appendChild(tag);
-      }
-
-      bar.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        book.highlights = (book.highlights || []).filter((item) => item.id !== hl.id);
-        await dbPut('books', book);
-        bar.remove();
-        showToast('Removed line marker', '✕');
-      });
-
-      return bar;
-    }
-
-    function applyReadingFilter(filterKey) {
-      state.readingFilter = filterKey;
-      const wrapper = document.getElementById('pdf-pages-wrapper');
-      wrapper.classList.remove('filter-normal', 'filter-sepia', 'filter-dark', 'filter-amber', 'filter-contrast');
-      wrapper.classList.add(`filter-${filterKey}`);
-
-      document.querySelectorAll('.filter-chip').forEach((btn) => {
-        if (btn.dataset.filter === filterKey) {
-          btn.classList.add('ring-2', 'ring-[#ffe94d]', 'bg-[#6722b8]');
-        } else {
-          btn.classList.remove('ring-2', 'ring-[#ffe94d]', 'bg-[#6722b8]');
-        }
-      });
-
-      const book = state.books.find((b) => b.id === state.activeBookId);
-      if (book) {
-        book.filter = filterKey;
-        dbPut('books', book);
-      }
-    }
-
-    function updateReaderRatingUI(book) {
-      const container = document.getElementById('reader-rating-stars');
-      container.innerHTML = '';
-      for (let i = 1; i <= 5; i++) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `text-sm cursor-pointer hover:scale-125 transition-transform ${
-          i <= (book.rating || 0) ? 'text-[#ff3b6b]' : 'text-white/30'
-        }`;
-        btn.textContent = '♥';
-        btn.addEventListener('click', async () => {
-          book.rating = i;
-          await dbPut('books', book);
-          updateReaderRatingUI(book);
-          renderDashboardBooks();
-          showToast(`Rated ${i}/5 hearts!`, '♥');
-        });
-        container.appendChild(btn);
-      }
-    }
-
-    function updateReaderFavAndFinishUI(book) {
-      const favBtn = document.getElementById('btn-reader-fav');
-      favBtn.textContent = book.isFavourite ? '👑 FAVOURITE' : '👑 SET FAV';
-      favBtn.classList.toggle('bg-[#ffd43b]', !!book.isFavourite);
-      favBtn.classList.toggle('text-[#140529]', !!book.isFavourite);
-
-      const finBtn = document.getElementById('btn-reader-finish');
-      finBtn.textContent = book.isFinished ? '✓ FINISHED' : '✓ MARK FINISH';
-      finBtn.classList.toggle('bg-[#4dff94]', !!book.isFinished);
-      finBtn.classList.toggle('text-[#140529]', !!book.isFinished);
-    }
-
-    let scrollSaveTimeout = null;
-    function updateScrollMetrics() {
-      const container = document.getElementById('pdf-scroll-container');
-      const book = state.books.find((b) => b.id === state.activeBookId);
-      if (!container || !book || !state.pdfDoc) return;
-
-      const maxScroll = Math.max(1, container.scrollHeight - container.clientHeight);
-      const pct = Math.min(100, Math.max(0, Math.round((container.scrollTop / maxScroll) * 100)));
-      const approxPage = Math.min(
-        state.pdfDoc.numPages,
-        Math.max(1, Math.ceil(((container.scrollTop + container.clientHeight * 0.35) / container.scrollHeight) * state.pdfDoc.numPages))
-      );
-
-      document.getElementById('reader-page-indicator').textContent = `Page ${approxPage} of ${state.pdfDoc.numPages}`;
-      document.getElementById('reader-progress-bar').style.width = `${pct}%`;
-      document.getElementById('reader-percent-label').textContent = `${pct}%`;
-
-      book.scrollTop = container.scrollTop;
-      book.progressPct = pct;
-
-      clearTimeout(scrollSaveTimeout);
-      scrollSaveTimeout = setTimeout(() => {
-        dbPut('books', book);
-      }, 350);
-    }
-
-    // =========================================================================
-    // 8. BACKGROUND MUSIC PLAYER + VIDEO-TO-AUDIO CONVERTER
-    // =========================================================================
-    const audioEl = document.getElementById('bgm-audio-player');
-    let synthInterval = null;
-    let audioCtx = null;
-
-    // Gentle Chiptune Synth Fallback for Built-In Default Track ("Angel Bite - TXT")
-    function startChiptuneFallback() {
-      stopChiptuneFallback();
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      const notes = [329.63, 392.0, 493.88, 587.33, 493.88, 392.0, 329.63, 293.66];
-      let step = 0;
-
-      synthInterval = setInterval(() => {
-        if (!state.isPlaying) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
-        const vol = parseFloat(document.getElementById('bgm-volume-slider').value || '0.5') * 0.12;
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.36);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.38);
-        step++;
-      }, 420);
-    }
-
-    function stopChiptuneFallback() {
-      if (synthInterval) {
-        clearInterval(synthInterval);
-        synthInterval = null;
-      }
-    }
-
-    function updateMusicUI() {
-      const track = state.tracks[state.currentTrackIndex];
-      const title = track ? track.title : 'Angel Bite - TXT';
-      document.getElementById('mini-track-title').textContent = title;
-      document.getElementById('modal-now-playing').textContent = title;
-
-      const iconPlay = document.getElementById('mini-icon-play');
-      const iconPause = document.getElementById('mini-icon-pause');
-      const headerVinyl = document.getElementById('header-vinyl-svg');
-      const readerBgmStatus = document.getElementById('reader-music-status');
-
-      if (state.isPlaying) {
-        iconPlay.classList.add('hidden');
-        iconPause.classList.remove('hidden');
-        headerVinyl.classList.add('vinyl-spin');
-        readerBgmStatus.textContent = 'PLAYING';
-      } else {
-        iconPlay.classList.remove('hidden');
-        iconPause.classList.add('hidden');
-        headerVinyl.classList.remove('vinyl-spin');
-        readerBgmStatus.textContent = 'BGM';
-      }
-
-      renderPlaylistModal();
-    }
-
-    function playCurrentTrack() {
-      const track = state.tracks[state.currentTrackIndex];
-      state.isPlaying = true;
-
-      if (track && track.blob) {
-        stopChiptuneFallback();
-        if (!track.objectUrl) {
-          track.objectUrl = URL.createObjectURL(track.blob);
-        }
-        if (audioEl.src !== track.objectUrl) {
-          audioEl.src = track.objectUrl;
-        }
-        audioEl.volume = parseFloat(document.getElementById('bgm-volume-slider').value || '0.65');
-        audioEl.play().catch(() => {});
-      } else {
-        audioEl.pause();
-        startChiptuneFallback();
-      }
-      updateMusicUI();
-    }
-
-    function pauseCurrentTrack() {
-      state.isPlaying = false;
-      audioEl.pause();
-      stopChiptuneFallback();
-      updateMusicUI();
-    }
-
-    function togglePlayPause() {
-      if (state.isPlaying) {
-        pauseCurrentTrack();
-      } else {
-        playCurrentTrack();
-      }
-    }
-
-    function nextTrack() {
-      if (state.tracks.length === 0) return;
-      state.currentTrackIndex = (state.currentTrackIndex + 1) % state.tracks.length;
-      playCurrentTrack();
-    }
-
-    function prevTrack() {
-      if (state.tracks.length === 0) return;
-      state.currentTrackIndex = (state.currentTrackIndex - 1 + state.tracks.length) % state.tracks.length;
-      playCurrentTrack();
-    }
-
-    audioEl.addEventListener('ended', () => {
-      nextTrack();
-    });
-
-    // Convert AudioBuffer to standard PCM WAV Blob
-    function audioBufferToWavBlob(audioBuffer) {
-      const numChannels = Math.min(2, audioBuffer.numberOfChannels);
-      const sampleRate = audioBuffer.sampleRate;
-      const length = audioBuffer.length * numChannels * 2;
-      const buffer = new ArrayBuffer(44 + length);
-      const view = new DataView(buffer);
-
-      const writeStr = (offset, str) => {
-        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-      };
-
-      writeStr(0, 'RIFF');
-      view.setUint32(4, 36 + length, true);
-      writeStr(8, 'WAVE');
-      writeStr(12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, numChannels, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * numChannels * 2, true);
-      view.setUint16(32, numChannels * 2, true);
-      view.setUint16(34, 16, true);
-      writeStr(36, 'data');
-      view.setUint32(40, length, true);
-
-      let offset = 44;
-      const channels = [];
-      for (let c = 0; c < numChannels; c++) channels.push(audioBuffer.getChannelData(c));
-
-      for (let i = 0; i < audioBuffer.length; i++) {
-        for (let c = 0; c < numChannels; c++) {
-          const sample = Math.max(-1, Math.min(1, channels[c][i]));
-          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-          offset += 2;
-        }
-      }
-
-      return new Blob([buffer], { type: 'audio/wav' });
-    }
-
-    // Handle Audio & Video Uploads with In-Browser Video-to-Audio Converter
-    async function handleMediaUpload(files) {
-      if (!files || files.length === 0) return;
-
-      const convBox = document.getElementById('converter-status-box');
-      const convLabel = document.getElementById('converter-label');
-      const convPct = document.getElementById('converter-percent');
-      const convBar = document.getElementById('converter-bar');
-
-      for (const file of files) {
-        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(file.name);
-        const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
-
-        if (isVideo) {
-          convBox.classList.remove('hidden');
-          convLabel.textContent = `Converting Video → Audio: ${cleanTitle}...`;
-          convPct.textContent = '25%';
-          convBar.style.width = '25%';
-
-          try {
-            const arrayBuf = await file.arrayBuffer();
-            convPct.textContent = '55%';
-            convBar.style.width = '55%';
-
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const decodedAudio = await ctx.decodeAudioData(arrayBuf);
-            convPct.textContent = '85%';
-            convBar.style.width = '85%';
-
-            const wavBlob = audioBufferToWavBlob(decodedAudio);
-            convPct.textContent = '100%';
-            convBar.style.width = '100%';
-
-            const track = {
-              id: 'track-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-              title: `${cleanTitle} (Converted Audio)`,
-              blob: wavBlob,
-              isConvertedVideo: true
-            };
-            state.tracks.push(track);
-            await dbPut('tracks', { id: track.id, title: track.title, blob: track.blob, isConvertedVideo: true });
-            state.currentTrackIndex = state.tracks.length - 1;
-            playCurrentTrack();
-            showToast(`Converted "${cleanTitle}" to WAV Audio!`, '♫');
-          } catch (err) {
-            // Fallback: HTML5 Audio element can natively play audio track from MP4/WebM blobs
-            const track = {
-              id: 'track-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-              title: `${cleanTitle} (Video Audio)`,
-              blob: file,
-              isConvertedVideo: true
-            };
-            state.tracks.push(track);
-            await dbPut('tracks', { id: track.id, title: track.title, blob: track.blob, isConvertedVideo: true });
-            state.currentTrackIndex = state.tracks.length - 1;
-            playCurrentTrack();
-            showToast(`Added "${cleanTitle}" audio to playlist!`, '♫');
-          } finally {
-            setTimeout(() => {
-              convBox.classList.add('hidden');
-              convBar.style.width = '0%';
-            }, 900);
-          }
-        } else {
-          // Standard Audio File
-          const track = {
-            id: 'track-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-            title: cleanTitle,
-            blob: file,
-            isConvertedVideo: false
-          };
-          state.tracks.push(track);
-          await dbPut('tracks', { id: track.id, title: track.title, blob: track.blob, isConvertedVideo: false });
-          state.currentTrackIndex = state.tracks.length - 1;
-          playCurrentTrack();
-          showToast(`Added "${cleanTitle}" to playlist!`, '♫');
-        }
-      }
-
-      renderPlaylistModal();
-    }
-
-    function renderPlaylistModal() {
-      const container = document.getElementById('playlist-items-container');
-      if (!container) return;
-      container.innerHTML = '';
-
-      state.tracks.forEach((track, idx) => {
-        const isCurrent = idx === state.currentTrackIndex;
-        const row = document.createElement('div');
-        row.className = `flex items-center justify-between gap-2 p-2.5 border-2 border-[#111] ${
-          isCurrent ? 'bg-[#ffe94d] font-bold' : 'bg-white'
-        }`;
-
-        const left = document.createElement('button');
-        left.className = 'flex items-center gap-2 text-left flex-1 truncate cursor-pointer font-pixel text-xs';
-        left.innerHTML = `<span>${isCurrent && state.isPlaying ? '▶' : '♪'}</span><span class="truncate">${track.title}</span>`;
-        left.addEventListener('click', () => {
-          state.currentTrackIndex = idx;
-          playCurrentTrack();
-        });
-
-        const actions = document.createElement('div');
-        actions.className = 'flex items-center gap-1.5 shrink-0';
-
-        // Download Converted WAV if available
-        if (track.blob && track.isConvertedVideo) {
-          const dlBtn = document.createElement('a');
-          if (!track.objectUrl) track.objectUrl = URL.createObjectURL(track.blob);
-          dlBtn.href = track.objectUrl;
-          dlBtn.download = `${track.title}.wav`;
-          dlBtn.className = 'win95-btn px-2 py-0.5 font-pixel text-[10px] cursor-pointer';
-          dlBtn.textContent = 'WAV ↓';
-          dlBtn.title = 'Download converted audio file';
-          actions.appendChild(dlBtn);
-        }
-
-        // Remove Track (if not the default built-in track)
-        if (track.id !== 'track-default-txt') {
-          const delBtn = document.createElement('button');
-          delBtn.className = 'win95-btn px-2 py-0.5 font-pixel text-[10px] text-red-700 cursor-pointer';
-          delBtn.textContent = '✕';
-          delBtn.title = 'Remove track';
-          delBtn.addEventListener('click', async () => {
-            state.tracks.splice(idx, 1);
-            await dbDelete('tracks', track.id);
-            if (state.currentTrackIndex >= state.tracks.length) state.currentTrackIndex = 0;
-            updateMusicUI();
-          });
-          actions.appendChild(delBtn);
-        }
-
-        row.appendChild(left);
-        row.appendChild(actions);
-        container.appendChild(row);
-      });
-    }
-
-    // =========================================================================
-    // 9. EVENT LISTENERS & BOOTSTRAP
-    // =========================================================================
-    window.addEventListener('DOMContentLoaded', async () => {
-      renderPixelMatrixLogo();
-      applyTheme(state.themeBg, state.themeBubble);
-      updateProfileUI();
-
-      // Initialize IndexedDB & Load Saved Books + Tracks
-      await openDB();
-      const savedBooks = await dbGetAll('books');
-      if (savedBooks.length > 0) {
-        state.books = savedBooks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      } else {
-        const welcome = await createDefaultWelcomeBook();
-        state.books = [welcome];
-      }
-
-      const savedTracks = await dbGetAll('tracks');
-      state.tracks = [
-        { id: 'track-default-txt', title: 'Angel Bite - TXT', blob: null, isConvertedVideo: false },
-        ...savedTracks
-      ];
-
-      renderDashboardBooks();
-      updateMusicUI();
-
-      // Screen 1 -> Screen 2
-      document.getElementById('btn-open-signin').addEventListener('click', () => {
-        switchScreen('screen-signin');
-      });
-
-      // Screen 2 ("Yes" -> Dashboard, "No" -> Landing)
-      document.getElementById('btn-signin-yes').addEventListener('click', () => {
-        const typedName = document.getElementById('input-username').value.trim();
-        if (typedName) state.username = typedName.toUpperCase();
-        updateProfileUI();
-        switchScreen('screen-dashboard');
-        showToast(`Welcome back, ${state.username}!`, '👾');
-      });
-
-      document.getElementById('btn-signin-no').addEventListener('click', () => {
-        switchScreen('screen-landing');
-      });
-
-      // Dashboard Profile Photo Upload
-      document.getElementById('upload-avatar-input').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          state.avatarDataUrl = reader.result;
-          localStorage.setItem('ebookz_avatar', state.avatarDataUrl);
-          updateProfileUI();
-          showToast('Profile photo updated!', '★');
-        };
-        reader.readAsDataURL(file);
-      });
-
-      // Dashboard Editable Username
-      document.getElementById('dashboard-username-input').addEventListener('change', (e) => {
-        state.username = e.target.value.trim().toUpperCase() || 'ADAM';
-        updateProfileUI();
-        showToast(`Player name set to ${state.username}`, '★');
-      });
-
-      // PDF Upload Input
-      document.getElementById('upload-pdf-input').addEventListener('change', (e) => {
-        handlePdfUpload(e.target.files);
-        e.target.value = '';
-      });
-
-      // Carousel Arrows (< and >)
-      document.getElementById('btn-prev-progress').addEventListener('click', () => {
-        const count = state.books.filter((b) => !b.isFinished).length;
-        if (count > 0) {
-          state.progressOffset = (state.progressOffset - 1 + count) % count;
-          renderDashboardBooks();
-        }
-      });
-
-      document.getElementById('btn-next-progress').addEventListener('click', () => {
-        const count = state.books.filter((b) => !b.isFinished).length;
-        if (count > 0) {
-          state.progressOffset = (state.progressOffset + 1) % count;
-          renderDashboardBooks();
-        }
-      });
-
-      document.getElementById('btn-prev-finish').addEventListener('click', () => {
-        const count = state.books.filter((b) => b.isFinished).length;
-        if (count > 0) {
-          state.finishOffset = (state.finishOffset - 1 + count) % count;
-          renderDashboardBooks();
-        }
-      });
-
-      document.getElementById('btn-next-finish').addEventListener('click', () => {
-        const count = state.books.filter((b) => b.isFinished).length;
-        if (count > 0) {
-          state.finishOffset = (state.finishOffset + 1) % count;
-          renderDashboardBooks();
-        }
-      });
-
-      // Theme Modal Controls
-      document.getElementById('btn-open-theme-modal').addEventListener('click', () => {
-        document.getElementById('modal-theme').classList.remove('hidden');
-      });
-      document.getElementById('btn-close-theme').addEventListener('click', () => {
-        document.getElementById('modal-theme').classList.add('hidden');
-      });
-      document.querySelectorAll('.theme-preset-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          applyTheme(btn.dataset.themeBg, btn.dataset.themeBubble);
-          showToast('Theme colour updated!', '🎨');
-        });
-      });
-      document.getElementById('custom-theme-picker').addEventListener('input', (e) => {
-        applyTheme(e.target.value, '#ffffff');
-      });
-
-      // Music & Video Converter Modal Controls
-      document.getElementById('btn-open-music-modal').addEventListener('click', () => {
-        document.getElementById('modal-music').classList.remove('hidden');
-      });
-      document.getElementById('btn-open-playlist-sub').addEventListener('click', () => {
-        document.getElementById('modal-music').classList.remove('hidden');
-      });
-      document.getElementById('btn-close-music').addEventListener('click', () => {
-        document.getElementById('modal-music').classList.add('hidden');
-      });
-      document.getElementById('upload-media-input').addEventListener('change', (e) => {
-        handleMediaUpload(e.target.files);
-        e.target.value = '';
-      });
-
-      document.getElementById('mini-play-pause').addEventListener('click', togglePlayPause);
-      document.getElementById('mini-prev-track').addEventListener('click', prevTrack);
-      document.getElementById('mini-next-track').addEventListener('click', nextTrack);
-      document.getElementById('modal-btn-play').addEventListener('click', togglePlayPause);
-      document.getElementById('modal-btn-prev').addEventListener('click', prevTrack);
-      document.getElementById('modal-btn-next').addEventListener('click', nextTrack);
-      document.getElementById('btn-reader-music-toggle').addEventListener('click', togglePlayPause);
-
-      document.getElementById('bgm-volume-slider').addEventListener('input', (e) => {
-        audioEl.volume = parseFloat(e.target.value);
-      });
-
-      // PDF Reader Controls
-      document.getElementById('btn-reader-back').addEventListener('click', () => {
-        renderDashboardBooks();
-        switchScreen('screen-dashboard');
-      });
-
-      document.getElementById('reader-book-title').addEventListener('change', async (e) => {
-        const book = state.books.find((b) => b.id === state.activeBookId);
-        if (!book) return;
-        book.title = e.target.value.trim() || 'Untitled PDF';
-        e.target.value = book.title;
-        await dbPut('books', book);
-        showToast(`Renamed PDF to "${book.title}"`, '✎');
-      });
-
-      document.getElementById('btn-reader-fav').addEventListener('click', async () => {
-        if (!state.activeBookId) return;
-        await toggleFavouriteBook(state.activeBookId);
-        const book = state.books.find((b) => b.id === state.activeBookId);
-        if (book) updateReaderFavAndFinishUI(book);
-      });
-
-      document.getElementById('btn-reader-finish').addEventListener('click', async () => {
-        if (!state.activeBookId) return;
-        await toggleFinishedBook(state.activeBookId);
-        const book = state.books.find((b) => b.id === state.activeBookId);
-        if (book) updateReaderFavAndFinishUI(book);
-      });
-
-      document.getElementById('btn-zoom-in').addEventListener('click', async () => {
-        const book = state.books.find((b) => b.id === state.activeBookId);
-        if (!book || !state.pdfDoc) return;
-        state.zoom = Math.min(2.2, state.zoom + 0.15);
-        await renderAllPdfPages(book);
-      });
-
-      document.getElementById('btn-zoom-out').addEventListener('click', async () => {
-        const book = state.books.find((b) => b.id === state.activeBookId);
-        if (!book || !state.pdfDoc) return;
-        state.zoom = Math.max(0.65, state.zoom - 0.15);
-        await renderAllPdfPages(book);
-      });
-
-      document.getElementById('btn-toggle-markline').addEventListener('click', () => {
-        state.markLineMode = !state.markLineMode;
-        const btn = document.getElementById('btn-toggle-markline');
-        const lbl = document.getElementById('markline-mode-label');
-        lbl.textContent = `Mark Last Line: ${state.markLineMode ? 'ON' : 'OFF'}`;
-        btn.classList.toggle('bg-[#ffe94d]', state.markLineMode);
-        btn.classList.toggle('text-[#140529]', state.markLineMode);
-        btn.classList.toggle('bg-[#2e0c4d]', !state.markLineMode);
-        btn.classList.toggle('text-white', !state.markLineMode);
-      });
-
-      document.getElementById('btn-jump-lastline').addEventListener('click', () => {
-        const marker = document.querySelector('.line-highlight-last');
-        if (marker) {
-          marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          showToast('Jumped to your last marked line!', '🖍');
-        } else {
-          showToast('Click any sentence on a page to mark your last line!', 'ℹ');
-        }
-      });
-
-      document.getElementById('btn-clear-lines').addEventListener('click', async () => {
-        const book = state.books.find((b) => b.id === state.activeBookId);
-        if (!book) return;
-        book.highlights = [];
-        await dbPut('books', book);
-        document.querySelectorAll('.line-highlight-bar').forEach((el) => el.remove());
-        showToast('Cleared all line markers', '✓');
-      });
-
-      document.querySelectorAll('.filter-chip').forEach((btn) => {
-        btn.addEventListener('click', () => applyReadingFilter(btn.dataset.filter));
-      });
-
-      document.getElementById('pdf-scroll-container').addEventListener('scroll', updateScrollMetrics);
-    });
-  </script>
-</body>
-</html>
+  <!-- =========================================================
+       MODAL: THEME COLOUR PICKER
+  ========================================================= -->
